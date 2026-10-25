@@ -1,0 +1,14 @@
+# generated solver outputs and post-processing products
+src/results/
+src/crit_out/
+src/ne_full/
+src/qp_out2/
+src/results_w_rebuilt/
+src/archive/
+src/*.mat
+src/*.csv
+src/*.json
+src/*.log
+src/*.pdf
+src/*.png
+__pycache__/
