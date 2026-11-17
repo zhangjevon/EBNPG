@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """R2 master aggregation for the EBNPG manuscript.
@@ -126,12 +125,36 @@ for p in probs:
     CR[p] = c; DN[p] = d
     INFO[p] = np.asarray(gv(o, 'info'))
 
+# ---- verdict-level adjudication -------------------------------------------
+# Of the 128 valued-but-uncertified points, 31 satisfy the criticality criterion
+# and 29 the displacement one when it is decided on the model value at the
+# returned point (see make_adjudicated.py); these are counted as passes here,
+# exactly as in r4_table4.py, so that the two never disagree.  The remaining 97
+# and 99, and the six unsolved points, count as failures.
+ADJ_TH = {}; ADJ_DN = {}
+for p in probs:
+    ADJ_TH[p] = np.zeros((12, 100), dtype=bool)
+    ADJ_DN[p] = np.zeros((12, 100), dtype=bool)
+_adj = os.path.join(CRIT, 'adjudicated.csv')
+if os.path.exists(_adj):
+    import csv as _csv
+    _ip = {n: i for i, n in enumerate(probs)}
+    _ia = {n: i for i, n in enumerate(algs)}
+    with open(_adj) as _f:
+        for _r in _csv.DictReader(_f):
+            _p = _r['prob']; _a = _ia[_r['alg']]; _k = int(_r['run']) - 1
+            ADJ_TH[_p][_a, _k] = _r['pass_theta'] == '1'
+            ADJ_DN[_p][_a, _k] = _r['pass_dnorm'] == '1'
+else:
+    print('note: adjudicated.csv absent, uncertified points counted as failures')
+
 def crit_rates(field, tol, mode='A'):
     pp = np.full((42, 12), np.nan)
     for pi, p in enumerate(probs):
         v = CR[p] if field == 'crit' else DN[p]
+        adj = ADJ_TH[p] if field == 'crit' else ADJ_DN[p]
         for a in range(12):
-            m = np.isfinite(v[a]) & (v[a] <= tol)
+            m = (np.isfinite(v[a]) & (v[a] <= tol)) | adj[a]
             if mode == 'B':
                 m = m & (INFO[p][a] == 0)
             pp[pi, a] = 100.0 * m.sum() / v[a].size
@@ -519,6 +542,21 @@ out = dict(
     tab9=[dict(cls=r[0], n=r[1], e_best=r[2], e_med=r[3], w_best=r[4], w_med=r[5], d=r[6]) for r in TAB9],
     extra=EXTRA,
 )
+
+out['provenance'] = {
+    'script': 'aggregate_all.py',
+    'inputs': ['results/<problem>_results.mat and <problem>_summary.csv',
+               'crit_out_r4/<problem>_crit.mat',
+               'crit_out_r4/adjudicated.csv (verdict at the uncertified points)',
+               'qp_out2/<problem>_qp.mat',
+               'results_w_rebuilt/<problem>_W_results.mat',
+               'ne_full/<problem>_N2.mat'],
+    'mask': 'a point with cert == 0 has no value and cannot count as a success, '
+            'except at the points adjudicated in adjudicated.csv',
+    'criteria': 'common criteria use beta = 1 and the Euclidean kernel',
+    'success_flag': 'info_vals == 0',
+    'reported_in': 'Tables 3, 5, 6, 7, 8, 9, 10 and the running text of the manuscript (R3)',
+    'consumed_by': 'verify_manuscript.py'}
 json.dump(out, open(os.path.join(BASE, 'r2_tables.json'), 'w'), indent=1)
 
 # ---------------- console summary ------------------------------------------

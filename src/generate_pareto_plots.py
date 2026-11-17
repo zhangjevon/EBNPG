@@ -1,4 +1,4 @@
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 """
 Generate Pareto front scatter plots for 2-objective problems.
@@ -13,12 +13,31 @@ from collections import defaultdict
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _pkg_root(start):
+    """Folder that holds both Code/ and Code_Data/, found by moving upwards.
+
+    A fixed number of '..' steps is right in one layout only; the scripts are
+    run both from the repository (where they sit in Code/) and from the release
+    package, so the root is searched instead of assumed."""
+    d = start
+    while True:
+        if os.path.isdir(os.path.join(d, 'Code')) and os.path.isdir(os.path.join(d, 'Code_Data')):
+            return d
+        up = os.path.dirname(d)
+        if up == d:
+            raise RuntimeError('no folder containing Code/ and Code_Data/ above %s' % start)
+        d = up
+
+
+ROOT = _pkg_root(SCRIPT_DIR)
 # The stored outputs live next to the code, not inside it: <root>/Code and
 # <root>/Code_Data are siblings.  (An earlier version pointed at Code/results,
 # a directory that does not exist, so the script could not run as shipped.)
-DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'Code_Data')
+DATA_DIR = os.path.join(ROOT, 'Code_Data')
 RESULTS_DIR = os.path.join(DATA_DIR, 'results')
-OUTPUT_DIR = os.path.join(DATA_DIR, 'results')
+OUTPUT_DIR = RESULTS_DIR
 
 # Algorithm colors and markers
 # Updated for new 12-algorithm configuration: 3 MPG + 2 CNPG + 7 EBNPG

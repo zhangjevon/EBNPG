@@ -1,18 +1,5 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
-% Export the reproducible part of the numerical experiments.
-%
-% For each of the 42 test problems this writes archive/<problem>.mat containing
-%   n, m, l, u        problem dimensions and box
-%   delta             threshold of the polyhedral support functions
-%   B{1..m}           the matrices defining g_i  (A_i = [B_i; -B_i])
-%   starts{1..12}     the 100 starting points of each algorithm slot (n x 100)
-%
-% The generation order reproduces run_problem.m exactly:
-%   rng(123); inip; delta = (8*rand+2)/100*norm(x0_init); datas; then twelve
-%   blocks of 100 draws of rand(n,1), one block per algorithm slot, with the
-%   block map of run_problem.m (natural protocol, except for the four
-%   interrupted sessions AP4, BK1, PNR and DGO2).
 % Export the reproducible part of the numerical experiments.
 %
 % For each of the 42 test problems this writes archive/<problem>.mat containing

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """Significance testing for the success-rate ranking (referee Comment 7).
@@ -24,11 +23,19 @@ Wilcoxon signed-rank test.  A two-sample proportion test on the pooled
 reference (it ignores the clustering of runs within problems).
 
 Success flag: info_vals == 0   (1 and -2 are two failure modes).
+
+Paths are resolved from this file, not from the working directory, so the
+script runs both from the package root (``python Code_Data/paired_test.py``)
+and from inside ``Code_Data`` itself.
 """
 import numpy as np
 import scipy.io as sio
 from scipy.stats import wilcoxon, binomtest
 import json
+import os
+
+BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
+RES = os.path.join(BASE, 'results')
 
 PROBS = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1',
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2',
@@ -49,7 +56,7 @@ def gv(e, n):
 SR = np.zeros((12, len(PROBS)))
 OK = np.zeros((12, len(PROBS)))       # number of successful runs
 for pi, p in enumerate(PROBS):
-    d = sio.loadmat('results/%s_results.mat' % p)['prob_results']
+    d = sio.loadmat(os.path.join(RES, '%s_results.mat' % p))['prob_results']
     for a in range(12):
         inf = np.asarray(gv(d[a, 0], 'info_vals')).ravel().astype(float)
         ok = int((inf == 0).sum())
@@ -107,12 +114,21 @@ for i, (nm, b, w, t, md, p) in enumerate(rows):
     print('%-14s  %4.2f%% vs %4.2f%%   z = %6.2f   p = %.2e' %
           (nm, 100 * k1 / n1, 100 * k2 / n2, z, pv))
 
-out = {'test': 'wilcoxon-on-42-paired-problems',
+out = {'provenance': {
+           'script': 'paired_test.py',
+           'inputs': 'results/<problem>_results.mat (info_vals column)',
+           'design': 'the 42 per-problem success rates are the paired observations',
+           'success_flag': 'info_vals == 0',
+           'adjustment': 'Holm over the 11 comparisons against EBNPG-N2',
+           'secondary': 'pooled two-proportion test on 4,200 vs 4,200 runs '
+                        '(anti-conservative: ignores the clustering within problems)',
+           'reported_in': 'Table 6 of the manuscript (R3), significance paragraph'},
+       'test': 'wilcoxon-on-42-paired-problems',
        'ref': ALGS[REF],
        'note': 'starting points are NOT shared across algorithms '
                '(regenerated per algorithm slot); pairing is at problem level',
        'vs': [{'alg': r[0], 'n2_better': r[1], 'n2_worse': r[2], 'tied': r[3],
                'mean_diff_pp': r[4], 'p': r[5], 'p_holm': holm[i]}
               for i, r in enumerate(rows)]}
-json.dump(out, open('paired_test.json', 'w'), indent=1)
+json.dump(out, open(os.path.join(BASE, 'paired_test.json'), 'w'), indent=1)
 print('\nsaved paired_test.json')

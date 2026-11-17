@@ -16,11 +16,11 @@ function export_instances(prob_list, out_dir)
 % samples are drawn with rng(7) inside curvature_weights (noneuclid_run.m),
 % so they are independent of the run stream.
 
+root = pkg_root(mfilename('fullpath'));   % folder holding Code/ and Code_Data/
 if nargin < 2 || isempty(out_dir)
-    out_dir = fullfile(fileparts(fileparts(mfilename('fullpath'))), 'archive');
+    out_dir = fullfile(root, 'archive');
 end
 if ~exist(out_dir,'dir'), mkdir(out_dir); end
-root = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(root,'Code'));
 global problem
 
@@ -91,4 +91,16 @@ for k = 1:K
 end
 d = d / K; d = max(d, 1e-10);
 w = d / mean(d); w = min(max(w, 1e-2), 1e2);
+end
+
+% ------------------------------------------------------------------------
+function root = pkg_root(this_file)
+root = fileparts(this_file);
+while ~(exist(fullfile(root,'Code'),'dir') && exist(fullfile(root,'Code_Data'),'dir'))
+    up = fileparts(root);
+    if isempty(up) || strcmp(up,root)
+        error('pkg_root:notfound','no folder containing Code/ and Code_Data/ above %s', this_file);
+    end
+    root = up;
+end
 end

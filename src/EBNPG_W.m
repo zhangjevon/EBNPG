@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function [x,info,iter,ngev,nhev,time,wtrace] = EBNPG_W(n,m,l,u,x,eta,sigma,gamma,beta,stop_tol,itermax,A,b,dimA,mode,epsx,varargin)
 % The optional seventh output wtrace collects the weight vector of every

@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function [x, info, iter, ngev, nhev, time] = CNPG(n, m, l, u, x, sigma, gamma, stop_tol, itermax, mode, A, b, dimA, varargin)
 % CNPG - Composite Nonmonotone Proximal-Gradient Method

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """Regenerate all_summary.csv from the (updated) results/*.mat files.

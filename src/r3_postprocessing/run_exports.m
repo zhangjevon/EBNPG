@@ -1,7 +1,11 @@
 % Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 % Export the instance data (x_ref, B_i, delta) and the per-run results.
-root = fileparts(fileparts(fileparts(mfilename('fullpath'))));   % <root>
+root = fileparts(mfilename('fullpath'));
+while ~(exist(fullfile(root,'Code'),'dir') && exist(fullfile(root,'Code_Data'),'dir'))
+    up = fileparts(root); if isempty(up) || strcmp(up,root), error('package root not found'); end
+    root = up;
+end
 addpath(fullfile(root,'Code'));
 if exist(fullfile(root,'patch'),'dir'), addpath(fullfile(root,'patch')); end
 if exist(fullfile(root,'Code','r3_postprocessing'),'dir'), addpath(fullfile(root,'Code','r3_postprocessing')); end

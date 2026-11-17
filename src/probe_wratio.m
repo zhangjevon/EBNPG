@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function probe_wratio()
 % Check the claim of Subsection 6.11 that, on well-conditioned problems, the

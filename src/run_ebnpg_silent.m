@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function [x, info, iter, ngev, nhev, time] = run_ebnpg_silent(n,m,l,u,x,eta,sigma,gamma,beta,stop_tol,itermax,Q,A,b,dimA,mode,M,rho,theta_avg)
 % Wrapper for EBNPG that suppresses verbose output via evalc

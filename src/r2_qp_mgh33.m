@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function r2_qp_mgh33()
 % Re-measure the proximal (QP) solve counts of MPG-Implicit on MGH33 after the

@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function qp_one(prob_name)
 % Count the proximal (QP) solves of MPG-Implicit for one problem.

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """Aggregate the fixed non-Euclidean kernel experiment (referee Comment 2).
@@ -8,18 +7,22 @@ K0 = Euclidean kernel (omega = 1/2||x||^2), K1 = fixed diagonal kernel
 (omega = 1/2 x'diag(w)x, w frozen before the run).  Same 100 starting points
 for both kernels on every problem, so the comparison is paired run by run
 (McNemar is valid here, unlike in the main experiment).
+
+Paths are resolved from this file, not from the working directory.
 """
 import numpy as np
 import scipy.io as sio
 import os, json
 from scipy.stats import binomtest, wilcoxon
 
+BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
+
 PROBS = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS',
          'Hil1','IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26',
          'MGH33','MLF2','MMR1','MMR2','MMR3','MOP5','MOP6','MOP7','NIC1',
          'NIC2','NIC3','NIM1','NSP1','NSP2','PNR','QV1','SK2','SP1','Toi4',
          'Toi9','VU2','ZDT6','ZLT1']
-D = 'ne_full'
+D = os.path.join(BASE, 'ne_full')
 
 
 def gv(e, n):
@@ -103,5 +106,15 @@ for r in sorted(rows, key=lambda r: -(r['sr1'] - r['sr0'])):
     print('%-6s %6.1f %6.1f %9.1f %9.1f %8.2f %9.3f' %
           (r['p'], r['sr0'], r['sr1'], r['mi0'], r['mi1'], r['wratio'], r['pval']))
 
-json.dump(rows, open('kernel_study.json', 'w'), indent=1)
+json.dump({'provenance': {
+               'script': 'build_kernel.py',
+               'inputs': 'ne_full/<problem>_N2.mat (K0 and K1 blocks)',
+               'design': 'one problem = one row; the two kernels share the same 100 '
+                         'starting points, so the McNemar test on the discordant '
+                         'pairs and the Wilcoxon test on the 42 per-problem '
+                         'differences are both valid',
+               'success_flag': 'info == 0',
+               'reported_in': 'Table 10 and Subsection 6.12 of the manuscript (R3)'},
+           'rows': rows},
+          open(os.path.join(BASE, 'kernel_study.json'), 'w'), indent=1)
 print('\nsaved kernel_study.json')

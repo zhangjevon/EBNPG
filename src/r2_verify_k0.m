@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function r2_verify_k0()
 % Verify that the R2 rerun of EBNPG-N2 on MGH33 (slot 8 of results/) reproduces

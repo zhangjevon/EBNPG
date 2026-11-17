@@ -1,20 +1,5 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
-% Single-problem batch runner for EBNPG experiments
-% Usage: run_problem('AP1', 10)
-% Results saved to results/<problem>_results.mat and results/<problem>_summary.csv
-% Also saves final solutions x_final and objective values f_final for Pareto analysis
-%
-% Starting-point protocol (Subsection 6.2 of the manuscript): after the
-% stream is seeded with 123 and the instance is generated, the twelve
-% algorithms consume successive blocks of <num_runs> draws of
-% x0 = l + (u-l).*rand(n,1), one block per algorithm.  In four of the
-% original sessions the run was interrupted -- after the first algorithm
-% for AP4, BK1 and PNR, after the third for DGO2 -- and the resumed session
-% restarted the stream, so the first algorithm after the resume reused
-% block 1 and every later algorithm moved one block earlier.  The block
-% map below reproduces that assignment exactly, so the stored results of
-% all 42 problems are regenerated bit for bit.
 % Single-problem batch runner for EBNPG experiments
 % Usage: run_problem('AP1', 10)
 % Results saved to results/<problem>_results.mat and results/<problem>_summary.csv

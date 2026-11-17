@@ -1,9 +1,18 @@
 # Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 """
-Generate Dolan-More performance profiles from experiment results.
-Reads all_summary.csv and generates perf_profiles.pdf with 2x2 subplots.
+Dolan-More performance profiles (Figure 2 of the paper).
+
+Reads Code_Data/results/all_summary.csv and writes figures/perf_profiles.pdf
+(2x2 panels: iterations, smooth-gradient evaluations, nonsmooth evaluations,
+CPU time) with the canvas used for the printed figure.  The same script writes
+the PNG preview next to it.
+
+The data root is found by walking upwards to the folder that holds both Code/
+and Code_Data/, so the script runs unchanged from the repository and from the
+release package.
 """
+
 import csv
 import numpy as np
 import matplotlib
@@ -13,8 +22,17 @@ from collections import defaultdict
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULTS_DIR = os.path.join(SCRIPT_DIR, 'results')
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, 'results')
+REPO_DIR = os.path.dirname(SCRIPT_DIR)
+# data root: <repo>/Code_Data next to this folder, or <repo> itself
+_data = os.environ.get('EBPGM_DATA') or next(
+    (c for c in (os.path.join(REPO_DIR, 'Code_Data'), REPO_DIR,
+                 os.path.join(SCRIPT_DIR, 'results')) if os.path.isdir(c)), REPO_DIR)
+RESULTS_DIR = os.path.join(_data, 'results')
+OUTPUT_DIR = os.environ.get('EBPGM_FIG') or os.path.join(REPO_DIR, 'figures')
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+TAU_MAX = 64.0                 # power-of-two upper end of the tau axis
+TICKS = [1, 2, 4, 8, 16, 32, 64]
 
 # Algorithm display names and colors
 # Updated for new 12-algorithm configuration: 3 MPG + 2 CNPG + 7 EBNPG
@@ -34,11 +52,23 @@ ALG_INFO = {
 }
 
 METRICS = [
-    ('MedIter',  'Iterations',       'perf_iter'),
-    ('MedNgev',  'Function evals',   'perf_ngev'),
-    ('MedNhev',  'Nonsmooth evals',  'perf_nhev'),
-    ('MedTime',  'CPU time (s)',     'perf_time'),
+    ('MedIter',  'Iterations'),
+    ('MedNgev',  'Function evaluations'),
+    ('MedNhev',  'Nonsmooth evaluations'),
+    ('MedTime',  'CPU time (s)'),
 ]
+
+
+def _to_float(v):
+    """Median of the successful runs; 'nan'/empty means no successful run."""
+    v = (v or '').strip()
+    if v in ('', 'NaN', 'nan'):
+        return float('nan')
+    try:
+        return float(v)
+    except ValueError:
+        return float('nan')
+
 
 def read_summary():
     """Read all_summary.csv and return {problem: {algorithm: {metric: value}}}"""
@@ -49,166 +79,111 @@ def read_summary():
         for row in reader:
             prob = row['Problem']
             alg = row['Algorithm']
-            for _, _, _ in METRICS:
-                pass
-            data[prob][alg]['MedIter']  = float(row['MedIter'])  if row['MedIter']  and row['MedIter']  != 'NaN' else float('inf')
-            data[prob][alg]['MedNgev']  = float(row['MedNgev'])  if row['MedNgev']  and row['MedNgev']  != 'NaN' else float('inf')
-            data[prob][alg]['MedNhev']  = float(row['MedNhev'])  if row['MedNhev']  and row['MedNhev']  != 'NaN' else float('inf')
-            data[prob][alg]['MedTime']  = float(row['MedTime'])  if row['MedTime']  and row['MedTime']  != 'NaN' else float('inf')
-            data[prob][alg]['SuccessRate'] = float(row['SuccessRate'])
+            for m, _ in METRICS:
+                data[prob][alg][m] = _to_float(row[m])
     return data
+
 
 def compute_profile(data, metric):
     """Compute Dolan-More performance profile for a given metric.
-    Returns {algorithm: (tau_array, rho_array)}.
-    Only includes problems where at least one solver has a finite value."""
-    # Filter problems: only include if at least one solver has finite value
-    # Also exclude "_partial" problems (incomplete experiment data)
-    valid_problems = []
-    for prob in data:
-        if '_partial' in prob:
-            continue
-        has_finite = any(data[prob][alg][metric] < float('inf') for alg in data[prob])
-        if has_finite:
-            valid_problems.append(prob)
-    
+
+    Returns (profiles, num_problems, ratios) where profiles maps each
+    algorithm to (tau_array, rho_array) and ratios maps each algorithm to
+    its raw ratio array (inf for failures, which include 'nan' medians).
+    Only problems on which at least one algorithm has a finite median are
+    used; a problem on which every algorithm fails is excluded (there is
+    no such problem in the present data set).
+    """
+    valid_problems = sorted(
+        p for p in data
+        if '_partial' not in p
+        and any(np.isfinite(data[p][a][metric]) for a in data[p])
+    )
     num_problems = len(valid_problems)
     if num_problems == 0:
-        return {}
-    
-    # Get all algorithms
-    all_algs = set()
-    for prob in valid_problems:
-        all_algs.update(data[prob].keys())
-    all_algs = sorted(all_algs)
-    
-    # Compute ratios
+        return {}, 0, {}
+
+    all_algs = sorted({a for p in valid_problems for a in data[p]})
+
     ratios = {alg: [] for alg in all_algs}
     for prob in valid_problems:
-        # Find best (minimum) value
-        best = min(data[prob][alg][metric] for alg in all_algs if alg in data[prob])
-        if best == float('inf'):
-            best = 1.0  # Avoid division by zero if all are inf (shouldn't happen after filtering)
-        
-        for alg in all_algs:
-            if alg in data[prob]:
-                val = data[prob][alg][metric]
-                ratios[alg].append(val / best if val < float('inf') else float('inf'))
-            else:
-                ratios[alg].append(float('inf'))
-    
-    # Compute CDF for each solver
+        vals = [data[prob][a][metric] for a in all_algs]
+        finite = [v for v in vals if np.isfinite(v)]
+        best = min(finite) if finite else float('inf')
+        for a in all_algs:
+            v = data[prob][a][metric]
+            # failure (no successful run) -> ratio +infinity
+            ratios[a].append(v / best if np.isfinite(v) and best > 0 else float('inf'))
+
+    tau_grid = np.unique(np.concatenate([
+        np.logspace(0, np.log10(TAU_MAX), 4000),
+        np.array([t for a in all_algs for t in ratios[a] if np.isfinite(t)]),
+        [1.0, TAU_MAX],
+    ]))
+
     profiles = {}
-    tau_max = 500.0  # Increased to capture worst algorithm
-    # Use log scale for better visualization of both good and bad algorithms
-    tau_array = np.logspace(0, np.log10(tau_max), 1000)  # Log scale from 1 to tau_max
-    
     for alg in all_algs:
-        r = np.array(ratios[alg])
-        rho = np.array([np.sum(r <= t) / num_problems for t in tau_array])
-        profiles[alg] = (tau_array, rho)
-    
-    return profiles, num_problems
+        r = np.sort(np.array([t for t in ratios[alg] if np.isfinite(t)]))
+        rho = np.searchsorted(r, tau_grid, side='right') / num_problems
+        profiles[alg] = (tau_grid, rho)
+    return profiles, num_problems, ratios
+
+
+def style_axis(ax, label):
+    ax.set_xlabel(r'$\tau$', fontsize=16)
+    ax.set_ylabel(r'$\rho_s(\tau)$', fontsize=16)
+    ax.set_title(label, fontsize=17, fontweight='bold')
+    ax.set_xscale('log')
+    ax.set_xlim(1, TAU_MAX)
+    ax.set_ylim(0, 1.05)
+    ax.set_xticks(TICKS)
+    ax.set_xticklabels([str(t) for t in TICKS])
+    ax.minorticks_off()
+    ax.tick_params(labelsize=14)
+    ax.grid(True, alpha=0.3)
+    ax.axhline(y=1.0, color='gray', linestyle=':', alpha=0.5)
+
 
 def plot_profiles(data):
     """Generate 2x2 subplot performance profiles."""
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig, axes = plt.subplots(2, 2, figsize=(9.6, 7.2))
     axes = axes.flatten()
-    
+
     subplot_labels = ['(a)', '(b)', '(c)', '(d)']
-    
-    for idx, (metric, label, _) in enumerate(METRICS):
+    handles, names = [], []
+
+    for idx, (metric, label) in enumerate(METRICS):
         ax = axes[idx]
-        profiles, n_prob = compute_profile(data, metric)
-        
-        # Find the maximum tau where any algorithm reaches rho=1.0
-        max_tau_reach = 1.0
+        profiles, n_prob, _ = compute_profile(data, metric)
+
         for alg_name, info in ALG_INFO.items():
             if alg_name in profiles:
                 tau, rho = profiles[alg_name]
-                # Find where rho first reaches 1.0
-                reach_idx = np.where(rho >= 1.0)[0]
-                if len(reach_idx) > 0:
-                    max_tau_reach = max(max_tau_reach, tau[reach_idx[0]])
-        
-        # Set tau_max based on actual data, with some margin
-        tau_max = min(max_tau_reach * 1.1, 100)  # Cap at 100 for readability
-        
-        for alg_name, info in ALG_INFO.items():
-            if alg_name in profiles:
-                tau, rho = profiles[alg_name]
-                ax.step(tau, rho, where='post', color=info['color'],
-                       linestyle=info['ls'], linewidth=1.5, label=alg_name)
-        
-        # Add subplot label (a)(b)(c)(d)
-        ax.text(0.02, 0.98, subplot_labels[idx], transform=ax.transAxes,
-                fontsize=14, fontweight='bold', verticalalignment='top',
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', 
-                         edgecolor='gray', alpha=0.8))
-        
-        ax.set_xlabel(f'$\\tau$ (log scale)', fontsize=11)
-        ax.set_ylabel(f'$\\rho_s(\\tau)$', fontsize=11)
-        ax.set_title(f'{label} ({n_prob} problems)', fontsize=12, fontweight='bold')
-        ax.set_xscale('log')
-        ax.set_xlim(1, tau_max)
-        ax.set_ylim(0, 1.05)
-        ax.grid(True, alpha=0.3)
-        ax.axhline(y=1.0, color='gray', linestyle=':', alpha=0.5)
-        
-        # Add annotation showing where worst algorithm reaches rho=1.0
-        if idx == 0 and max_tau_reach > 1.0:
-            ax.annotate(f'worst: $\\tau={max_tau_reach:.1f}$', 
-                       xy=(max_tau_reach, 1.0), 
-                       xytext=(max_tau_reach * 0.7, 0.85),
-                       fontsize=9, color='darkred',
-                       arrowprops=dict(arrowstyle='->', color='darkred', lw=1.2),
-                       bbox=dict(boxstyle='round,pad=0.3', facecolor='lightyellow',
-                               edgecolor='darkred', alpha=0.9))
-        
-        if idx == 0:
-            ax.legend(fontsize=7, loc='lower right', ncol=2)
-    
-    plt.tight_layout()
+                h = ax.step(tau, rho, where='post', color=info['color'],
+                            linestyle=info['ls'], linewidth=1.6, label=alg_name)
+                if idx == 0:
+                    handles.append(h[0])
+                    names.append(alg_name)
+
+        ax.text(0.03, 0.97, subplot_labels[idx], transform=ax.transAxes,
+                fontsize=15, fontweight='bold', verticalalignment='top',
+                bbox=dict(boxstyle='round,pad=0.25', facecolor='white',
+                          edgecolor='gray', alpha=0.8))
+        style_axis(ax, label)
+
+    # shared legend below the panels, so no curve is covered
+    fig.legend(handles, names, loc='upper center', ncol=6, fontsize=12,
+               frameon=False, handlelength=2.6, columnspacing=1.2,
+               bbox_to_anchor=(0.5, 0.005))
+
+    plt.tight_layout(rect=(0, 0.055, 1, 1))
     output_path = os.path.join(OUTPUT_DIR, 'perf_profiles.pdf')
-    plt.savefig(output_path, format='pdf', bbox_inches='tight', dpi=300)
-    plt.savefig(output_path.replace('.pdf', '.png'), format='png', bbox_inches='tight', dpi=150)
+    plt.savefig(output_path, format='pdf', bbox_inches='tight')
+    plt.savefig(output_path.replace('.pdf', '.png'), format='png',
+                bbox_inches='tight', dpi=150)
     plt.close()
     print(f'Performance profiles saved to {output_path}')
-    
-    # Also save individual profiles
-    for metric, label, fname in METRICS:
-        fig, ax = plt.subplots(figsize=(8, 6))
-        profiles, n_prob = compute_profile(data, metric)
-        
-        # Find max tau for this metric
-        max_tau_reach = 1.0
-        for alg_name, info in ALG_INFO.items():
-            if alg_name in profiles:
-                tau, rho = profiles[alg_name]
-                reach_idx = np.where(rho >= 1.0)[0]
-                if len(reach_idx) > 0:
-                    max_tau_reach = max(max_tau_reach, tau[reach_idx[0]])
-        tau_max = min(max_tau_reach * 1.1, 100)
-        
-        for alg_name, info in ALG_INFO.items():
-            if alg_name in profiles:
-                tau, rho = profiles[alg_name]
-                ax.step(tau, rho, where='post', color=info['color'],
-                       linestyle=info['ls'], linewidth=1.5, label=alg_name)
-        ax.set_xlabel(r'$\tau$ (log scale)', fontsize=13)
-        ax.set_ylabel(r'$\rho_s(\tau)$', fontsize=13)
-        ax.set_title(f'Performance profile: {label} ({n_prob} problems)', fontsize=13, fontweight='bold')
-        ax.set_xscale('log')
-        ax.set_xlim(1, tau_max)
-        ax.set_ylim(0, 1.05)
-        ax.grid(True, alpha=0.3)
-        ax.legend(fontsize=8, loc='lower right', ncol=2)
-        plt.tight_layout()
-        path = os.path.join(OUTPUT_DIR, f'{fname}.pdf')
-        plt.savefig(path, format='pdf', bbox_inches='tight', dpi=300)
-        plt.savefig(path.replace('.pdf', '.png'), format='png', bbox_inches='tight', dpi=150)
-        plt.close()
-        print(f'  {fname}.pdf saved')
+
 
 if __name__ == '__main__':
     data = read_summary()

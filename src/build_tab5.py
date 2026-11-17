@@ -1,4 +1,4 @@
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 import numpy as np, scipy.io as sio, os, json
 
@@ -82,7 +82,16 @@ print('\nMPG-Implicit per-problem ratio: min=%.2f  q1=%.2f  median=%.2f  q3=%.2f
 worst = sorted(imp_qp, key=lambda p: -imp_qp[p] / max(imp_it[p], 1))[:5]
 print('largest ratios:', [(p, round(imp_qp[p] / max(imp_it[p], 1), 2)) for p in worst])
 
-json.dump({'rows': [(a, float(q), float(t), float(rr)) for a, q, t, rr in rows],
+json.dump({'provenance': {
+               'script': 'build_tab5.py',
+               'inputs': ['results/<problem>_results.mat (iter_vals, info_vals)',
+                          'qp_out2/<problem>_qp.mat (measured QP counts, MPG-Implicit)'],
+               'note': 'med #QP is the measured count for MPG-Implicit and the median '
+                       'iteration count plus the documented offset for the rest',
+               'success_flag': 'info_vals == 0',
+               'reported_in': 'Table 5 of the manuscript (R3); common_sr.json is '
+                              'written by recompute_sr.py, not here'},
+           'rows': [(a, float(q), float(t), float(rr)) for a, q, t, rr in rows],
            'common': common,
            'imp_ratio': {p: imp_qp[p] / max(imp_it[p], 1) for p in imp_qp}},
           open(os.path.join(_BASE,'tab5_data.json'), 'w'), indent=1)

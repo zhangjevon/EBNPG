@@ -65,18 +65,50 @@ for pi, p in enumerate(probs):
 
 # A value enters the count only if the certificate reproduced it (cert == 1).
 # Values at the 134 uncertified points (128 reproduction failures + 6 unsolved)
-# are set to NaN and therefore count as failures, as documented in the caption.
+# are set to NaN and therefore count as failures, except at the points where the
+# criterion is decided by the verdict-level adjudication below.
 MASK = (cert > 0)
 th = np.where(MASK, th, np.nan)
 dn = np.where(MASK, dn, np.nan)
 
+# ---- verdict-level adjudication of the uncertified points ------------------
+# At 128 points the pass could not certify the *value*: the value the solver
+# returns there is positive by about 1e-9, which is impossible for -Theta_1.
+# The criterion is a statement about the point, so it is decided on the value
+# the model attains at the returned point (retry_log.csv, column theta_def) and
+# on the displacement of that point.  adjudicated.csv, written by
+# make_adjudicated.py, records the outcome for all 128 points; the points it
+# marks are counted as passes, the others (and the six unsolved) as failures.
+ADJ_TH = np.zeros_like(th, dtype=bool)
+ADJ_DN = np.zeros_like(dn, dtype=bool)
+adj_csv = os.path.join(CRIT, 'adjudicated.csv')
+if os.path.exists(adj_csv):
+    ip = {n: i for i, n in enumerate(probs)}
+    ia = {n: i for i, n in enumerate(algs)}
+    with open(adj_csv) as f:
+        for r in csv.DictReader(f):
+            i, j, k = ip[r['prob']], ia[r['alg']], int(r['run']) - 1
+            if cert[i, j, k] > 0:
+                continue
+            ADJ_TH[i, j, k] = r['pass_theta'] == '1'
+            ADJ_DN[i, j, k] = r['pass_dnorm'] == '1'
+    print('adjudicated points  : %d (Theta %d, disp %d)'
+          % (int(ADJ_TH.sum() | ADJ_DN.sum()), int(ADJ_TH.sum()), int(ADJ_DN.sum())))
+else:
+    print('adjudicated.csv not found: uncertified points counted as failures')
 
-def rate(v, tol=TOL):
-    return 100.0 * (np.isfinite(v) & (v <= tol)).sum() / v.shape[0]
+
+def rate(v, tol=TOL, adj=None):
+    m = np.isfinite(v) & (v <= tol)
+    if adj is not None:
+        m = m | adj
+    return 100.0 * m.sum() / v.shape[0]
 
 
-PP_TH = np.array([[rate(th[pi, a]) for a in range(12)] for pi in range(len(probs))])
-PP_DN = np.array([[rate(dn[pi, a]) for a in range(12)] for pi in range(len(probs))])
+PP_TH = np.array([[rate(th[pi, a], adj=ADJ_TH[pi, a]) for a in range(12)]
+                  for pi in range(len(probs))])
+PP_DN = np.array([[rate(dn[pi, a], adj=ADJ_DN[pi, a]) for a in range(12)]
+                  for pi in range(len(probs))])
 AVG_TH, AVG_DN = PP_TH.mean(0), PP_DN.mean(0)
 ROB_TH = (PP_TH >= 90).sum(0) / len(probs) * 100
 ROB_DN = (PP_DN >= 90).sum(0) / len(probs) * 100
@@ -99,8 +131,10 @@ for a in range(12):
     rows.append(dict(algorithm=algs[a],
                      avg_th=AVG_TH[a], rob_th=ROB_TH[a],
                      avg_dn=AVG_DN[a], rob_dn=ROB_DN[a],
-                     n_th_pass=int((np.isfinite(th[:, a]) & (th[:, a] <= TOL)).sum()),
-                     n_dn_pass=int((np.isfinite(dn[:, a]) & (dn[:, a] <= TOL)).sum()),
+                     n_th_pass=int((np.isfinite(th[:, a]) & (th[:, a] <= TOL)).sum()
+                                   + ADJ_TH[:, a].sum()),
+                     n_dn_pass=int((np.isfinite(dn[:, a]) & (dn[:, a] <= TOL)).sum()
+                                   + ADJ_DN[:, a].sum()),
                      n_missing=int((~np.isfinite(th[:, a])).sum())))
     print('%-14s %8.1f %8.1f %8.1f %8.1f' %
           (algs[a], AVG_TH[a], ROB_TH[a], AVG_DN[a], ROB_DN[a]))

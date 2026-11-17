@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """Stratified (Cochran--Mantel--Haenszel) test for the success-rate ranking.
@@ -11,11 +10,19 @@ stratum is common to both, which is exactly the situation CMH handles.
 
 Reference algorithm: EBNPG-N2.  Holm's adjustment over the 11 comparisons.
 Success flag: info_vals == 0.
+
+Paths are resolved from this file, not from the working directory, so the
+script runs both from the package root (``python Code_Data/cmh_test.py``) and
+from inside ``Code_Data`` itself.
 """
 import numpy as np
 import scipy.io as sio
 from scipy.stats import chi2, wilcoxon
 import json
+import os
+
+BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
+RES = os.path.join(BASE, 'results')
 
 PROBS = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1',
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2',
@@ -35,7 +42,7 @@ def gv(e, n):
 OK = np.zeros((12, len(PROBS)))
 NN = np.zeros(len(PROBS), dtype=int)
 for pi, p in enumerate(PROBS):
-    d = sio.loadmat('results/%s_results.mat' % p)['prob_results']
+    d = sio.loadmat(os.path.join(RES, '%s_results.mat' % p))['prob_results']
     for a in range(12):
         inf = np.asarray(gv(d[a, 0], 'info_vals')).ravel().astype(float)
         OK[a, pi] = int((inf == 0).sum())
@@ -94,12 +101,21 @@ for i, (nm, md, stat, p, pw, w, l, t) in enumerate(rows):
 nsig = sum(1 for i in range(len(rows)) if holm[i] < 0.05)
 print('\nsignificant after Holm (alpha = 0.05): %d of %d' % (nsig, len(rows)))
 
-json.dump({'test': 'CMH-stratified-by-problem',
+json.dump({'provenance': {
+               'script': 'cmh_test.py',
+               'inputs': 'results/<problem>_results.mat (info_vals column)',
+               'design': '42 strata = problems, 100 runs per algorithm and stratum; '
+                         'starting points are redrawn per algorithm slot, so the two '
+                         'arms of each 2x2 table are independent within a stratum',
+               'success_flag': 'info_vals == 0',
+               'adjustment': 'Holm over the 11 comparisons against EBNPG-N2',
+               'reported_in': 'Table 6 of the manuscript (R3), significance paragraph'},
+           'test': 'CMH-stratified-by-problem',
            'secondary': 'wilcoxon-on-42-problems',
            'ref': ALGS[REF],
            'vs': [{'alg': r[0], 'mean_diff_pp': r[1], 'cmh_chi2': r[2],
                    'p': r[3], 'p_holm': holm[i], 'wilcoxon_p': r[4],
                    'n2_better': r[5], 'n2_worse': r[6], 'tied': r[7]}
                   for i, r in enumerate(rows)]},
-          open('cmh_test.json', 'w'), indent=1)
+          open(os.path.join(BASE, 'cmh_test.json'), 'w'), indent=1)
 print('saved cmh_test.json')

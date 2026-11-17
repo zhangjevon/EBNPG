@@ -1,23 +1,5 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
-% Fixed non-Euclidean kernel experiment (referee Comment 2).
-%
-% For each of the 42 problems, EBNPG-N2 is run twice, from the SAME 100
-% starting points, with
-%   K0 : omega(x) = 1/2 ||x||^2            (Euclidean, M = I)
-%   K1 : omega(x) = 1/2 x' diag(w) x       (fixed diagonal kernel, w frozen)
-% so the comparison is paired run by run.
-%
-% The weight vector w is built ONCE per problem, before any run, from an
-% averaged finite-difference estimate of the coordinate curvature of the smooth
-% components over the box; it is then held fixed for all iterations and all
-% starting points, so the kernel satisfies the fixed-kernel theory.
-%
-% Uses the ORIGINAL EBNPG (linprog evaluation of g_i), so that K0 reproduces
-% the stored EBNPG-N2 results exactly on the 41 problems whose fixed-kernel
-% study shares their starting points (the exceptions are AP4 and DGO2; see
-% the block map below).  Results are saved per problem so that the run can
-% be resumed.
 % Fixed non-Euclidean kernel experiment (referee Comment 2).
 %
 % For each of the 42 problems, EBNPG-N2 is run twice, from the SAME 100

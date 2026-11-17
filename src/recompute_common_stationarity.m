@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function recompute_common_stationarity(prob_list, out_dir)
 % Recompute a COMMON, method-independent stationarity measure at every

@@ -1,6 +1,5 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
-% run this script from the src folder
 function export_all_results(results_dir)
 % EXPORT_ALL_RESULTS  Flatten the stored solver outputs into the CSV files
 % consumed by the aggregation and figure scripts.

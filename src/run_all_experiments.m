@@ -1,28 +1,5 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
-% =============================================================================
-% Reproduce All Numerical Experiments
-% =============================================================================
-% This script runs all 42 multiobjective test problems defined in inip.m.
-%
-% For each problem, 12 algorithms are tested with multiple random starts:
-%   - MPG-Explicit, MPG-Armijo, MPG-Implicit (3 Euclidean baselines)
-%   - CNPG-Max, CNPG-Avg (2 composite nonmonotone proximal-gradient)
-%   - EBNPG-N0, N1, N2, N3, N5, N6, N7 (7 Bregman nonmonotone variants)
-%
-% Results are saved to results/ as:
-%   - <problem>_results.mat  (full per-run data including Pareto solutions)
-%   - <problem>_summary.csv  (median statistics)
-%
-% After all experiments complete, run:
-%   1. export_all_results   (MATLAB) -> generates all_summary.csv, pareto_data.csv
-%   2. r2_perf_profiles.py       (Python) -> Dolan-More performance profiles
-%   3. generate_pareto_plots.py    (Python) -> Pareto front visualizations
-%
-% Usage:
-%   >> run_all_experiments          % default: 100 runs per problem
-%   >> run_all_experiments(10)      % 10 runs per problem
-% =============================================================================
 % =============================================================================
 % Reproduce All Numerical Experiments
 % =============================================================================

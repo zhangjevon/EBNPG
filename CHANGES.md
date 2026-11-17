@@ -5,6 +5,56 @@ This release is a modified version of <https://github.com/lfprudente/MPG>
 repository. Files marked *modified* differ from the corresponding MPG file;
 files marked *added* are new in this release.
 
+## Revision 3.1 --- tag `v3.1-jogo-r3`
+
+No reported number changes with respect to `v3.0-jogo-r3`. The differences are in how the package
+runs and in how its files account for themselves; both were audit findings on `v3.0`, where several
+scripts ran only from one particular working directory and one summary file no longer reproduced.
+
+Changed:
+
+- Every entry point and post-processing script now resolves its inputs from its own location, by
+  searching upwards for the folder that contains `Code/` and `Code_Data/`, instead of assuming a
+  fixed directory depth and a working directory of `Code_Data/`. `recompute_common_stationarity_r4.m`
+  also creates its output folder *after* changing into the data directory, which is the point at
+  which the previous version failed on a bare output name.
+- `recompute_sr.py` now applies the same certification mask and the same verdict-level adjudication
+  as `src/r3_postprocessing/r4_table4.py`, and reproduces all 72 cells of Table 4. In `v3.0` it
+  omitted the adjudication and returned 95.1 for two rows in which the manuscript prints 95.2.
+- `cmh_test.json`, `paired_test.json`: regenerated from the shipped `results/`. The `v3.0` copies had
+  been produced from an earlier `results/` and no longer reproduced (65 of 88 and 49 of 66 numeric
+  keys differ; the mean difference for MPG-Explicit is 4.524 percentage points, not 4.762).
+- `r2_oracle_cost.py` writes `per_iter_g` and `per_iter_h` under separate keys, and runs with no
+  arguments (defaults: `results/`, `oracle_cost_r2.json`). `v3.0` packed the pair into a single key
+  named `per_iter_h`, which invites the reader to take the first entry as `n_h`.
+- `mcnemar.py` is labelled for what it is: the superseded instance-level analysis, retained because
+  its output documents why the pairing was taken at problem level. `run_problem.m` redraws the
+  starting point per algorithm slot, so the 4,200 instances of a problem are not paired across
+  algorithms; the manuscript states this and reports `cmh_test.py` and `paired_test.py` instead.
+  The `v3.0` README described `mcnemar.py` as the per-problem McNemar test of the fixed-kernel study,
+  which it is not.
+- `verify_manuscript.py` derives the cited release tag, commit and DOI from the manuscript and checks
+  that they agree with each other, instead of asserting the `v3.0` strings, which made the checker
+  fail as soon as the package was re-released.
+- Every JSON written by these scripts now carries a `provenance` block naming the script, the inputs,
+  the success flag and the table it feeds, and marking the files that enter no reported number.
+- `build_kernel.py` reads `ne_full/` by an absolute path derived from the script, and writes
+  `kernel_study.json` as `{"provenance": ..., "rows": [...]}`; `build_tab5.py` and the two
+  `oracle_cost*.py` gained the same block.
+- Licence headers: previously inserted after the first line, which duplicated the
+  `# -*- coding: utf-8 -*-` line of the Python files; they are now on top. Files derived from the MPG
+  repository keep their own `Modified from the MPG repository` header.
+
+Added:
+
+- `src/check_table4.py` --- parses the LaTeX source of Table 4 and compares all 72 cells with
+  `common_sr.json`, so that the table and the data cannot drift apart unnoticed.
+
+Removed:
+
+- `src/r2_perf_profiles.py` --- superseded by `src/generate_perf_profiles.py`, which reproduces the
+  printed Figure 2 pixel for pixel.
+
 ## Revision 3 --- tag `v3.0-jogo-r3`
 
 The sources in `src/` have been regenerated from the tree that produced the numbers of the third

@@ -17,7 +17,7 @@ function cert_sample(prob_list, stride, out_csv)
 
 if nargin < 2 || isempty(stride),   stride = 25; end
 if nargin < 3, out_csv = 'cert_sample.csv'; end
-root     = fileparts(fileparts(mfilename('fullpath')));
+root     = pkg_root(mfilename('fullpath'));   % folder holding Code/ and Code_Data/
 code_dir = fullfile(root,'Code');
 data_dir = fullfile(root,'Code_Data');
 old_pwd = pwd; cd(data_dir); cleanup = onCleanup(@() cd(old_pwd)); %#ok<NASGU>
@@ -73,4 +73,21 @@ fclose(fid);
 fprintf('\nsampled            : %d\n', cnt);
 fprintf('certified          : %d  (%.2f%%)\n', cnt-nbad, 100*(cnt-nbad)/max(cnt,1));
 fprintf('|d_theta| > 1e-8   : %d   max=%.3e\n', ndiff, worst);
+end
+
+% ------------------------------------------------------------------------
+function root = pkg_root(this_file)
+% The folder that contains both Code/ and Code_Data/, found by moving upwards.
+% This makes the driver independent of where it sits: in the development tree
+% it lives in patch/, in the release package in Code/r3_postprocessing/, and a
+% fixed number of fileparts() calls cannot be right in both layouts.
+root = fileparts(this_file);
+while ~(exist(fullfile(root,'Code'),'dir') && exist(fullfile(root,'Code_Data'),'dir'))
+    up = fileparts(root);
+    if isempty(up) || strcmp(up,root)
+        error('pkg_root:notfound', ...
+              'no folder containing Code/ and Code_Data/ above %s', this_file);
+    end
+    root = up;
+end
 end

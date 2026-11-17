@@ -37,18 +37,22 @@ function recompute_common_stationarity_r4(prob_list, out_dir)
 % Usage:  recompute_common_stationarity_r4(prob_list)
 %         recompute_common_stationarity_r4({'AP3','NIC2'}, 'crit_out_r4')
 
-if nargin < 2 || isempty(out_dir), out_dir = 'crit_out_r4'; end
-if ~exist(out_dir,'dir'), mkdir(out_dir); end
 
-root     = fileparts(fileparts(mfilename('fullpath')));   % .../JOGO三审
+root     = pkg_root(mfilename('fullpath'));   % folder that holds Code/ and Code_Data/
 code_dir = fullfile(root,'Code');
 data_dir = fullfile(root,'Code_Data');
 first_dir= fullfile(data_dir,'crit_out');                  % first pass (read only)
 res_dir  = fullfile(data_dir,'results');                   % solver outputs
 
+% A relative output folder is taken relative to Code_Data, so that the script
+% can be called from anywhere with the name of a table (e.g. 'crit_out_r4').
+if nargin < 2 || isempty(out_dir), out_dir = 'crit_out_r4'; end
+if isempty(fileparts(out_dir)), out_dir = fullfile(data_dir, out_dir); end
+
 old_pwd = pwd; cd(data_dir); cleanup = onCleanup(@() cd(old_pwd));
 addpath(code_dir);
 global problem
+if ~exist(out_dir,'dir'), mkdir(out_dir); end
 
 cert_tol = 1e-6;   % value must be reproduced by the model at the returned point
 opt1 = qopt(1e-10, 5000,  1e-12);   % stage 1: as in the first pass
@@ -207,5 +211,22 @@ try
     [xopt,~,info,~,lam] = quadprog(Hess,c,Asub,bsub,Aeq,beq,lb,ub,x0,opt);
 catch
     xopt = NaN; info = -99; lam = [];
+end
+end
+
+% ------------------------------------------------------------------------
+function root = pkg_root(this_file)
+% The folder that contains both Code/ and Code_Data/, found by moving upwards.
+% This makes the driver independent of where it sits: in the development tree
+% it lives in patch/, in the release package in Code/r3_postprocessing/, and a
+% fixed number of fileparts() calls cannot be right in both layouts.
+root = fileparts(this_file);
+while ~(exist(fullfile(root,'Code'),'dir') && exist(fullfile(root,'Code_Data'),'dir'))
+    up = fileparts(root);
+    if isempty(up) || strcmp(up,root)
+        error('pkg_root:notfound', ...
+              'no folder containing Code/ and Code_Data/ above %s', this_file);
+    end
+    root = up;
 end
 end

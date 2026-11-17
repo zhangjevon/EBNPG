@@ -1,4 +1,4 @@
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 """R2: recompute oracle cost stats (Table 8 + T statistic) from the R2 data folder.
 
@@ -7,12 +7,15 @@ Mirrors Code_Data/oracle_cost2.py exactly:
   - T (MPG trials per iteration): per problem, MPG-Explicit (slot 0), successful runs,
     t = sum(nh) / (m * sum(it)); reported mean/median/min/max over the 42 problems
   - weighted cost wins (rho=1,5,20) and median ratio to best at rho=20
-Usage: python r2_oracle_cost.py <results_dir> <out_json>
+Usage: python r2_oracle_cost.py [results_dir] [out_json]
+       with no arguments it reads results/ and writes oracle_cost_r2.json
+       next to this script.
 """
 import numpy as np, scipy.io as sio, os, json, sys, statistics as st
 
-RES = sys.argv[1]
-OUT = sys.argv[2]
+_BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
+RES = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_BASE, 'results')
+OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(_BASE, 'oracle_cost_r2.json')
 probs = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1',
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2',
          'MMR1','MMR2','MMR3','MOP5','MOP6','MOP7','NIC1','NIC2','NIC3','NIM1',
@@ -102,7 +105,21 @@ for rho in ratios:
 for ai, a in enumerate(algs):
     print('%-13s %8d %8d %8d %10.2f' % (a, tab[1][0][ai], tab[5][0][ai], tab[20][0][ai], tab[20][1][ai]))
 
-json.dump({'algs': algs, 'per_iter_h': {a: list(perit[a]) for a in algs},
+json.dump({'provenance': {
+               'script': 'r2_oracle_cost.py',
+               'inputs': os.path.basename(RES.rstrip('/\\')) +
+                         '/<problem>_results.mat (ngev_vals, nhev_vals, iter_vals)',
+               'note': 'per-iteration n_g and n_h pooled over successful runs; T is the '
+                       'MPG trial count per iteration from MPG-Explicit, summed over the '
+                       'problems and normalised by m * sum(iter)',
+               'success_flag': 'info == 0',
+               'reported_in': 'Table 8 and the T statistic of Subsection 6.9 (R3)'},
+           'algs': algs,
+           # perit[a] = (n_g per iteration, n_h per iteration); the two are written
+           # under separate keys, because a single key holding both invites the
+           # reader to take the first entry as n_h.
+           'per_iter_g': {a: perit[a][0] for a in algs},
+           'per_iter_h': {a: perit[a][1] for a in algs},
            'mpg_trials': mpg_trials,
            'wins': {str(r): tab[r][0].tolist() for r in ratios},
            'medrel': {str(r): tab[r][1].tolist() for r in ratios}},

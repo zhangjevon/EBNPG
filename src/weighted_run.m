@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 function weighted_run(probs, epsx, nruns, outdir)
 % weighted_run -- reconstruct the adaptive EBNPG-W experiment of Subsection 6.11.

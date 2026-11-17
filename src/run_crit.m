@@ -1,4 +1,4 @@
-% Added for the EBNPG manuscript.
+% Added for the EBNPG manuscript (third revision).
 % SPDX-License-Identifier: GPL-3.0-or-later
 here = fileparts(mfilename('fullpath')); if isempty(here), here = pwd; end
 addpath(fullfile(here,'..','Code'));

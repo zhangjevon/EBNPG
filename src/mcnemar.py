@@ -1,20 +1,39 @@
-# -*- coding: utf-8 -*-
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
-"""Paired statistical comparison of success/failure outcomes (McNemar).
+"""SUPERSEDED: instance-level McNemar analysis of the main comparison.
 
-All 12 algorithms are run from the same 100 starting points on each of the 42
-problems, so the outcomes are naturally paired: for every (problem, starting
-point) pair we know whether each of the two algorithms succeeded.
+This script was the first attempt at a significance test for the success-rate
+ranking.  It pairs the twelve algorithms run by run, i.e. it treats the 4,200
+instances of a problem as 4,200 paired observations.
 
-Uses the success flag stored in info_vals (1 = success, 0 = failure), i.e. the
-same criterion as the reported success rates.  No solver is re-run.
+That pairing does not exist.  ``run_problem.m`` draws the starting point inside
+the algorithm loop,
+
+    for aidx = 1:12
+        for run = 1:100
+            x0_run = l + (u-l).*rand(n,1);
+
+so each algorithm slot consumes its own block of 100 draws: the starting points
+are identically distributed across algorithms but are NOT the same points (see
+``check_startpoints.m``).  The manuscript states this, and the test reported
+there takes the problem --- not the run --- as the paired unit
+(``cmh_test.py`` for the stratified CMH test, ``paired_test.py`` for the
+Wilcoxon test on the 42 per-problem success rates).
+
+The script is retained because its output documents *why* the run-level pairing
+was abandoned: the resulting p-values are anti-conservative by construction.
+It enters no reported number of the manuscript.
+
+Paths are resolved from this file, not from the working directory.
 """
 import numpy as np
 import scipy.io as sio
 from scipy.stats import binomtest
-import json, itertools
+import json, itertools, os
+
+BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
+RES = os.path.join(BASE, 'results')
 
 PROBS = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1',
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2',
@@ -35,7 +54,7 @@ def gv(e, n):
 flag = {}
 npts = {}
 for p in PROBS:
-    d = sio.loadmat('results/%s_results.mat' % p)['prob_results']
+    d = sio.loadmat(os.path.join(RES, '%s_results.mat' % p))['prob_results']
     row = []
     for a in range(12):
         inf = np.asarray(gv(d[a, 0], 'info_vals')).ravel().astype(float)
@@ -108,10 +127,20 @@ for i, (name, bo, co, pv, per) in enumerate(rows):
               if (lambda t: binomtest(t[0], t[0] + t[1], 0.5).pvalue if t[0] + t[1] > 0 else 1.0)(per[p]) < 0.05)
     print('%-14s significant on %2d / 42 problems' % (name, sig))
 
-out = {'ref': ALGS[REF],
+out = {'provenance': {
+           'script': 'mcnemar.py',
+           'inputs': 'results/<problem>_results.mat (info_vals column)',
+           'status': 'SUPERSEDED -- enters no reported number',
+           'why': 'treats the 100 runs of a problem as paired across algorithms, but '
+                  'run_problem.m redraws the starting point per algorithm slot; the '
+                  'manuscript pairs at problem level instead',
+           'superseded_by': ['cmh_test.py', 'paired_test.py'],
+           'success_flag': 'info_vals == 0',
+           'reported_in': 'none'},
+       'ref': ALGS[REF],
        'vs': [{'alg': r[0], 'n2_only': r[1], 'other_only': r[2],
                'p': r[3], 'p_holm': adj[i],
                'per_problem': {k: list(v) for k, v in r[4].items()}}
               for i, r in enumerate(rows)]}
-json.dump(out, open('mcnemar.json', 'w'), indent=1)
+json.dump(out, open(os.path.join(BASE, 'mcnemar.json'), 'w'), indent=1)
 print('\nsaved mcnemar.json')

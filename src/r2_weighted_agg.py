@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Added for the EBNPG manuscript.
+# Added for the EBNPG manuscript (third revision).
 # SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """Rebuild Table 9 and the Subsection 6.11 prose numbers from the RERUN of the
@@ -149,6 +148,16 @@ out['named'] = named
 ci = [probs.index(p) for p in probs if CLASS[p] == 'Convex']
 out['convex_delta'] = float(np.max(WSR[ci], axis=1).mean() - np.max(ESR[ci], axis=1).mean())
 out['convex_delta_r'] = mround(out['convex_delta'], 1)
+
+out['provenance'] = {
+    'script': 'r2_weighted_agg.py',
+    'inputs': ['results/<problem>_results.mat (Euclidean side, read as aggregate_all.py '
+               'reads it)',
+               'results_w_rebuilt/<problem>_W_results.mat (adaptive side, the rerun)'],
+    'note': 'results_weighted/ is the superseded stored block and is read by no part '
+            'of this script',
+    'success_flag': 'info_vals == 0',
+    'reported_in': 'Table 9 and the prose numbers of Subsection 6.11 (R3)'}
 
 with open(OUT, 'w', encoding='utf-8') as f:
     json.dump(out, f, indent=1)
