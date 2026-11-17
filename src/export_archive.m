@@ -13,6 +13,19 @@
 %   blocks of 100 draws of rand(n,1), one block per algorithm slot, with the
 %   block map of run_problem.m (natural protocol, except for the four
 %   interrupted sessions AP4, BK1, PNR and DGO2).
+% Export the reproducible part of the numerical experiments.
+%
+% For each of the 42 test problems this writes archive/<problem>.mat containing
+%   n, m, l, u        problem dimensions and box
+%   delta             threshold of the polyhedral support functions
+%   B{1..m}           the matrices defining g_i  (A_i = [B_i; -B_i])
+%   starts{1..12}     the 100 starting points of each algorithm slot (n x 100)
+%
+% The generation order reproduces run_problem.m exactly:
+%   rng(123); inip; delta = (8*rand+2)/100*norm(x0_init); datas; then twelve
+%   blocks of 100 draws of rand(n,1), one block per algorithm slot, with the
+%   block map of run_problem.m (natural protocol, except for the four
+%   interrupted sessions AP4, BK1, PNR and DGO2).
 function export_archive()
     probs = {'AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS', ...
              'Hil1','IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26', ...
@@ -21,7 +34,7 @@ function export_archive()
              'Toi9','VU2','ZDT6','ZLT1'};
     nalg = 12;
     nruns = 100;
-    outdir = 'archive';
+    outdir = fullfile('..','archive');
     if ~exist(outdir,'dir'), mkdir(outdir); end
 
     fid = fopen(fullfile(outdir,'instances.csv'),'w');

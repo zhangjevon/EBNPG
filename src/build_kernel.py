@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Added for the EBNPG manuscript.
 # SPDX-License-Identifier: GPL-3.0-or-later
+# -*- coding: utf-8 -*-
 """Aggregate the fixed non-Euclidean kernel experiment (referee Comment 2).
 
 K0 = Euclidean kernel (omega = 1/2||x||^2), K1 = fixed diagonal kernel

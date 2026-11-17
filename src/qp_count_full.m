@@ -5,8 +5,9 @@ function qp_count_full()
 % The random-stream offset of the stored run is detected automatically by
 % matching the first 8 iteration counts, so the QP counts refer to exactly the
 % same 100 starting points as the stored results.
-    addpath(fileparts(mfilename('fullpath')));
-    if ~exist('results','dir'), mkdir('results'); end
+    here = fileparts(mfilename('fullpath'));
+    addpath(fullfile(here,'..','Code'));
+    cd(here);
     global problem QPSOLVECOUNT
 
     probs = {'AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1', ...

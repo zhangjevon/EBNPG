@@ -2,8 +2,9 @@
 % SPDX-License-Identifier: GPL-3.0-or-later
 function qp_one(prob_name)
 % Count the proximal (QP) solves of MPG-Implicit for one problem.
-    addpath(fileparts(mfilename('fullpath')));
-    if ~exist('results','dir'), mkdir('results'); end
+    here = fileparts(mfilename('fullpath'));
+    addpath(fullfile(here,'..','Code'));
+    cd(here);
     global problem QPSOLVECOUNT
     problem = prob_name;
 

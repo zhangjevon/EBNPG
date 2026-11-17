@@ -15,6 +15,21 @@
 % block 1 and every later algorithm moved one block earlier.  The block
 % map below reproduces that assignment exactly, so the stored results of
 % all 42 problems are regenerated bit for bit.
+% Single-problem batch runner for EBNPG experiments
+% Usage: run_problem('AP1', 10)
+% Results saved to results/<problem>_results.mat and results/<problem>_summary.csv
+% Also saves final solutions x_final and objective values f_final for Pareto analysis
+%
+% Starting-point protocol (Subsection 6.2 of the manuscript): after the
+% stream is seeded with 123 and the instance is generated, the twelve
+% algorithms consume successive blocks of <num_runs> draws of
+% x0 = l + (u-l).*rand(n,1), one block per algorithm.  In four of the
+% original sessions the run was interrupted -- after the first algorithm
+% for AP4, BK1 and PNR, after the third for DGO2 -- and the resumed session
+% restarted the stream, so the first algorithm after the resume reused
+% block 1 and every later algorithm moved one block earlier.  The block
+% map below reproduces that assignment exactly, so the stored results of
+% all 42 problems are regenerated bit for bit.
 
 function run_problem(prob_name, num_runs)
     global problem
@@ -54,7 +69,7 @@ function run_problem(prob_name, num_runs)
     [dimA,A,b] = datas(n,m,delta);
     
     fprintf('  n=%d, m=%d\n', n, m);
-    
+
     % ---- starting-point blocks ---------------------------------------------
     % blk(a) is the index of the stream block consumed by algorithm slot a.
     % The blocks are drawn up front (the solvers consume no random numbers,
@@ -81,7 +96,7 @@ function run_problem(prob_name, num_runs)
         end
         blocks{a} = S;
     end
-    
+
     all_summary = {};
     prob_results = cell(length(algorithms), 1);
 

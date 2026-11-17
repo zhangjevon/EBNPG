@@ -18,6 +18,24 @@
 % study shares their starting points (the exceptions are AP4 and DGO2; see
 % the block map below).  Results are saved per problem so that the run can
 % be resumed.
+% Fixed non-Euclidean kernel experiment (referee Comment 2).
+%
+% For each of the 42 problems, EBNPG-N2 is run twice, from the SAME 100
+% starting points, with
+%   K0 : omega(x) = 1/2 ||x||^2            (Euclidean, M = I)
+%   K1 : omega(x) = 1/2 x' diag(w) x       (fixed diagonal kernel, w frozen)
+% so the comparison is paired run by run.
+%
+% The weight vector w is built ONCE per problem, before any run, from an
+% averaged finite-difference estimate of the coordinate curvature of the smooth
+% components over the box; it is then held fixed for all iterations and all
+% starting points, so the kernel satisfies the fixed-kernel theory.
+%
+% Uses the ORIGINAL EBNPG (linprog evaluation of g_i), so that K0 reproduces
+% the stored EBNPG-N2 results exactly on the 40 problems whose fixed-kernel
+% study shares their starting points (the exceptions are AP4 and DGO2; see
+% the block map below).  Results are saved per problem so that the run can
+% be resumed.
 function noneuclid_run()
     probs = {'AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS', ...
              'Hil1','IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26', ...
@@ -25,7 +43,7 @@ function noneuclid_run()
              'NIC2','NIC3','NIM1','NSP1','NSP2','PNR','QV1','SK2','SP1','Toi4', ...
              'Toi9','VU2','ZDT6','ZLT1'};
     MODES  = {'N2'};
-    outdir = 'ne_full';
+    outdir = fullfile('..','Code_Data','ne_full');
     if ~exist(outdir,'dir'), mkdir(outdir); end
 
     for pi = 1:numel(probs)
@@ -47,7 +65,7 @@ function noneuclid_run()
             % Starting points of the paired runs: the 8th block of 100 draws
             % for 40 of the 42 problems, the 7th for BK1 and PNR.  This
             % reproduces the stored fixed-kernel study exactly.  It is also
-            % the EBNPG-N2 block of the main experiments for 41 problems;
+            % the EBNPG-N2 block of the main experiments for 40 problems;
             % the exceptions are AP4 (N2 used the 7th block) and DGO2 (the
             % 5th), whose sessions were interrupted and resumed without
             % advancing the stream, while their fixed-kernel study was

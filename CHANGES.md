@@ -5,6 +5,37 @@ This release is a modified version of <https://github.com/lfprudente/MPG>
 repository. Files marked *modified* differ from the corresponding MPG file;
 files marked *added* are new in this release.
 
+## Revision 3 --- tag `v3.0-jogo-r3`
+
+The sources in `src/` have been regenerated from the tree that produced the numbers of the third
+revision; apart from the items below, the differences are whitespace and licence-header
+normalisation.
+
+Changed:
+
+- `aggregate_all.py` --- the stationarity table it reads is now the certified `crit_out_r4/`
+  (`EBPGM_CRIT=crit_out` restores the previous behaviour). With the old default the three Table 4
+  columns came out without the certification mask.
+- `generate_pareto_plots.py` --- Figure 1 is now drawn in the plane of the composite objectives
+  `F_i = f_i + g_i` rather than of their smooth parts, and the six problems it selects are the ones
+  named in Subsection 6.8 of the manuscript (it previously fell back, silently, to the first six names
+  in alphabetical order). Its data directory now resolves to `Code_Data/` instead of a directory that
+  does not exist.
+- `generate_perf_profiles.py` --- added (Figure 2); `r2_perf_profiles.py` is the earlier version.
+- `export_all_results.m`, `export_archive.m`, `noneuclid_run.m`, `qp_count_full.m`, `qp_count_study.m`,
+  `qp_one.m`, `recompute_sr.py`, `build_kernel.py`, `build_tab5.py`, `regen_summary.py`, `cmh_test.py`,
+  `paired_test.py`, `mcnemar.py`, `r2_oracle_cost.py`, `r2_weighted_agg.py`, `r2_rerun_mgh33.m`,
+  `run_all_experiments.m`, `run_crit.m`, `weighted_run.m` --- resynchronised with that tree.
+
+Added (`src/r3_postprocessing/`):
+
+- `recompute_common_stationarity_r4.m` --- re-solve and certification ladder for the common proximal subproblem.
+- `cert_sample.m` --- independent re-certification of a systematic sample of the first-pass values.
+- `export_pareto_composite.m` --- composite objectives at the stored final points (Figure 1).
+- `export_instances.m`, `r4_table4.py`, `r4_numbers.py`, `r4_audit.py` --- instance export, Table 4, and its audit.
+- `run_r4.m`, `run_sample.m`, `run_exports.m`, `run_inst.m` --- drivers. Every path is resolved from the location of the script itself; the earlier wrappers contained absolute paths of the author's machine.
+- `r4_table4.csv` --- the resulting table, as shipped.
+
 ## Added files
 
 MATLAB:

@@ -32,8 +32,14 @@ from collections import defaultdict
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULTS_DIR = os.path.join(SCRIPT_DIR, 'results')
-OUTPUT_DIR = SCRIPT_DIR
+REPO_DIR = os.path.dirname(SCRIPT_DIR)
+# data root: <repo>/Code_Data next to this folder, or <repo> itself
+_data = os.environ.get('EBPGM_DATA') or next(
+    (c for c in (os.path.join(REPO_DIR, 'Code_Data'), REPO_DIR,
+                 os.path.join(SCRIPT_DIR, 'results')) if os.path.isdir(c)), REPO_DIR)
+RESULTS_DIR = os.path.join(_data, 'results')
+OUTPUT_DIR = os.environ.get('EBPGM_FIG') or os.path.join(REPO_DIR, 'figures')
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 TAU_MAX = 64.0                 # power-of-two upper end of the tau axis
 TICKS = [1, 2, 4, 8, 16, 32, 64]

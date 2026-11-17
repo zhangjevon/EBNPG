@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Added for the EBNPG manuscript.
 # SPDX-License-Identifier: GPL-3.0-or-later
+# -*- coding: utf-8 -*-
 """Significance testing for the success-rate ranking (referee Comment 7).
 
 IMPORTANT FACT ABOUT THE DATA GENERATION (verified with check_startpoints.m):

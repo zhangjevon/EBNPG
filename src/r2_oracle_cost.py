@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """R2: recompute oracle cost stats (Table 8 + T statistic) from the R2 data folder.
 
-Mirrors oracle_cost2.py exactly:
+Mirrors Code_Data/oracle_cost2.py exactly:
   - per-iteration n_g, n_h: pooled over successful runs (info==0, it>0), all 42 problems
   - T (MPG trials per iteration): per problem, MPG-Explicit (slot 0), successful runs,
     t = sum(nh) / (m * sum(it)); reported mean/median/min/max over the 42 problems

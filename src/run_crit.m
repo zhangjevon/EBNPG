@@ -1,7 +1,8 @@
 % Added for the EBNPG manuscript.
 % SPDX-License-Identifier: GPL-3.0-or-later
-addpath(fileparts(mfilename('fullpath')));
-if ~exist('results','dir'), mkdir('results'); end
+here = fileparts(mfilename('fullpath')); if isempty(here), here = pwd; end
+addpath(fullfile(here,'..','Code'));
+cd(here);
 probs = {'AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1', ...
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2', ...
          'MMR1','MMR2','MMR3','MOP5','MOP6','MOP7','NIC1','NIC2','NIC3','NIM1', ...

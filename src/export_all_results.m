@@ -1,8 +1,24 @@
 % Added for the EBNPG manuscript.
 % SPDX-License-Identifier: GPL-3.0-or-later
 % run this script from the src folder
-results_dir = 'results';
+function export_all_results(results_dir)
+% EXPORT_ALL_RESULTS  Flatten the stored solver outputs into the CSV files
+% consumed by the aggregation and figure scripts.
+%
+%   export_all_results            % reads <this folder>/results
+%   export_all_results(dirname)   % reads the given folder
+%
+% Writes all_summary.csv, all_raw.csv and pareto_data.csv next to the inputs
+% and a transcript in export_log.txt.  No absolute path is used, so the
+% script runs unchanged from any checkout.
+if nargin < 1 || isempty(results_dir)
+    results_dir = 'results';
+end
+here = fileparts(mfilename('fullpath'));
+if isempty(here), here = pwd; end
+cd(here);
 diary('export_log.txt');
+fprintf('export_all_results: results_dir = %s\n', results_dir);
 
 % Get all .mat files (both _results.mat and _partial_results.mat)
 files = dir(fullfile(results_dir, '*.mat'));
@@ -144,3 +160,4 @@ end
 
 fprintf('\nAll exports complete.\n');
 diary('off');
+end

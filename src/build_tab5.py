@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import numpy as np, scipy.io as sio, os, json
 
-BASE = os.path.dirname(os.path.abspath(__file__))
-RES = os.path.join(BASE, 'results')
-QP2 = os.path.join(BASE, 'qp_out2')
+_BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
+RES = os.path.join(_BASE, 'results')
+QP2 = os.path.join(_BASE, 'qp_out2')
 
 probs = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1',
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2',
@@ -85,4 +85,4 @@ print('largest ratios:', [(p, round(imp_qp[p] / max(imp_it[p], 1), 2)) for p in 
 json.dump({'rows': [(a, float(q), float(t), float(rr)) for a, q, t, rr in rows],
            'common': common,
            'imp_ratio': {p: imp_qp[p] / max(imp_it[p], 1) for p in imp_qp}},
-          open(os.path.join(BASE, 'tab5_data.json'), 'w'), indent=1)
+          open(os.path.join(_BASE,'tab5_data.json'), 'w'), indent=1)

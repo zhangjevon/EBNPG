@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Added for the EBNPG manuscript.
 # SPDX-License-Identifier: GPL-3.0-or-later
+# -*- coding: utf-8 -*-
 """Paired statistical comparison of success/failure outcomes (McNemar).
 
 All 12 algorithms are run from the same 100 starting points on each of the 42

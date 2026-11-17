@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Added for the EBNPG manuscript.
 # SPDX-License-Identifier: GPL-3.0-or-later
+# -*- coding: utf-8 -*-
 """Regenerate all_summary.csv from the (updated) results/*.mat files.
 
 Mirrors export_all_results.m: one row per (problem, algorithm) with the
@@ -8,7 +9,9 @@ per-problem median statistics used by generate_perf_profiles.py.
 """
 import numpy as np, scipy.io as sio, os, csv
 
-BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results')
+_DATA = os.environ.get('EBPGM_DATA') or os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'Code_Data')
+BASE = os.path.join(_DATA, 'results')
 probs = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1',
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2',
          'MMR1','MMR2','MMR3','MOP5','MOP6','MOP7','NIC1','NIC2','NIC3','NIM1',

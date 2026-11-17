@@ -4,7 +4,7 @@ function weighted_run(probs, epsx, nruns, outdir)
 % weighted_run -- reconstruct the adaptive EBNPG-W experiment of Subsection 6.11.
 %
 % Usage (from the Code folder):
-%   weighted_run({'NIC1'}, 1e-8, 100, 'results_w_rebuilt')
+%   weighted_run({'NIC1'}, 1e-8, 100, '../Code_Data/results_w_rebuilt')
 %
 % For every problem: rng(123); [n,m,l,u,x0_init]=inip; delta=(8*rand+2)/100*||x0_init||;
 % [dimA,A,b]=datas(n,m,delta); then the seven EBNPG-W variants N0,N1,N2,N3,N5,N6,N7
@@ -18,7 +18,7 @@ function weighted_run(probs, epsx, nruns, outdir)
 
 if nargin < 2 || isempty(epsx),  epsx = 1e-8;   end
 if nargin < 3 || isempty(nruns), nruns = 100;   end
-if nargin < 4 || isempty(outdir),outdir = 'results_w_rebuilt'; end
+if nargin < 4 || isempty(outdir),outdir = '../Code_Data/results_w_rebuilt'; end
 if ~exist(outdir,'dir'), mkdir(outdir); end
 
 MODES = {'N0','N1','N2','N3','N5','N6','N7'};

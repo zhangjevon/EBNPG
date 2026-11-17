@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Added for the EBNPG manuscript.
 # SPDX-License-Identifier: GPL-3.0-or-later
+# -*- coding: utf-8 -*-
 """Rebuild Table 9 and the Subsection 6.11 prose numbers from the RERUN of the
 adaptive EBNPG-W study.
 
@@ -16,7 +17,7 @@ import json
 import numpy as np
 import scipy.io as sio
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(BASE, 'results')
 RESW = os.path.join(BASE, 'results_w_rebuilt')
 OUT = os.path.join(BASE, 'r2_weighted.json')

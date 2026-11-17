@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import numpy as np, scipy.io as sio, os, json, collections
 
-BASE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(BASE, 'crit_out')
+_BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(_BASE,'crit_out')
 probs = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1',
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2',
          'MMR1','MMR2','MMR3','MOP5','MOP6','MOP7','NIC1','NIC2','NIC3','NIM1',
@@ -98,5 +98,5 @@ for ai in range(nA):
 json.dump({'algs': algs,
            'avg': {k: res[k][0].tolist() for k in res},
            'rob': {k: res[k][1].tolist() for k in res}},
-          open(os.path.join(BASE, 'common_sr.json'), 'w'), indent=1)
+          open(os.path.join(_BASE,'common_sr.json'), 'w'), indent=1)
 print('\nsaved common_sr.json')

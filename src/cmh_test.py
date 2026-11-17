@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Added for the EBNPG manuscript.
 # SPDX-License-Identifier: GPL-3.0-or-later
+# -*- coding: utf-8 -*-
 """Stratified (Cochran--Mantel--Haenszel) test for the success-rate ranking.
 
 Data structure: 42 strata (the problems); in each stratum a 2x2 table

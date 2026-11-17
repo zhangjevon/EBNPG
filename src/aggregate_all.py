@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Added for the EBNPG manuscript.
 # SPDX-License-Identifier: GPL-3.0-or-later
+# -*- coding: utf-8 -*-
 """R2 master aggregation for the EBNPG manuscript.
 
 Recomputes every numerical table of the manuscript from the stored solver
@@ -8,15 +9,21 @@ outputs, after (i) the MGH33 block has been replaced by a fully documented
 rerun and (ii) DTLZ2 has been reclassified from Convex to Nonconvex.
 
 Outputs:
-  r2_tables.json              all numbers needed for the tex tables
+  R2_work/r2_tables.json      all numbers needed for the tex tables
+  R2_work/r2_rows_*.tex       LaTeX row fragments for direct splicing
 """
 import numpy as np, scipy.io as sio, os, json
 from scipy.stats import chi2, wilcoxon, binomtest
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(BASE, 'results')
 RESW = os.path.join(BASE, 'results_w_rebuilt')   # R2 rerun of the adaptive study
-CRIT = os.path.join(BASE, 'crit_out')
+# crit_out    : first-pass stationarity table only (as used up to R2; it does not
+#               carry the cert flag, so the three Table 4 columns come out unmasked)
+# crit_out_r4 : final certified table; first-pass values carried over (nfirst = 1)
+#               and every point the first pass left unsolved re-solved and certified.
+#               This is the table the manuscript reports, and hence the default.
+CRIT = os.path.join(BASE, os.environ.get('EBPGM_CRIT', 'crit_out_r4'))
 QP2 = os.path.join(BASE, 'qp_out2')
 NEF = os.path.join(BASE, 'ne_full')
 
@@ -102,11 +109,21 @@ MEDIT_MED = np.nanmedian(MEDIT, axis=1)
 MEDTIME_MED = np.nanmedian(MEDTIME, axis=1)
 
 # ================= common stationarity (crit_out) ==========================
+# A value counts only if it is certified: the model, evaluated at the point the
+# solver returned, must reproduce the value to max(1e-6, 1e-12|value|).  In the
+# first-pass table (crit_out) every stored value is certified by construction,
+# which cert_sample.m verifies on a systematic sample; in the R3 re-solve
+# (crit_out_r4) the certification flag is stored per point.
 CR = {}; DN = {}; INFO = {}
 for p in probs:
     o = sio.loadmat(os.path.join(CRIT, p + '_crit.mat'))['out']
-    CR[p] = np.asarray(gv(o, 'crit'))
-    DN[p] = np.asarray(gv(o, 'dnorm'))
+    c = np.asarray(gv(o, 'crit')); d = np.asarray(gv(o, 'dnorm'))
+    try:                                  # present only in the R3 re-solve
+        ok = np.asarray(gv(o, 'cert')).astype(float) > 0
+        c = np.where(ok, c, np.nan); d = np.where(ok, d, np.nan)
+    except (KeyError, ValueError):
+        pass
+    CR[p] = c; DN[p] = d
     INFO[p] = np.asarray(gv(o, 'info'))
 
 def crit_rates(field, tol, mode='A'):

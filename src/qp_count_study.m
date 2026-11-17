@@ -5,8 +5,9 @@ function qp_count_study(phase)
 % phase = 'verify' : small subsample, checks the relation between the number
 %                    of QP solves and the iteration counter for each family
 % phase = 'implicit' : full 42x100 re-run of MPG-Implicit only
-    addpath(fileparts(mfilename('fullpath')));
-    if ~exist('results','dir'), mkdir('results'); end
+    here = fileparts(mfilename('fullpath'));
+    addpath(fullfile(here,'..','Code'));
+    cd(here);
     global problem QPSOLVECOUNT
 
     probs_all = {'AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1', ...
@@ -87,8 +88,8 @@ function qp_count_study(phase)
             end
             if strcmp(phase,'implicit')
                 out = struct('problem',prob_name,'algorithm',s.name,'qp_count',cnt,'iter',it,'info',inf);
-                if ~exist('qp_out2','dir'), mkdir('qp_out2'); end
-                save(fullfile('qp_out2',[prob_name '_qp.mat']),'out');
+                if ~exist('qp_out','dir'), mkdir('qp_out'); end
+                save(fullfile('qp_out',[prob_name '_qp.mat']),'out');
             end
         end
     end
