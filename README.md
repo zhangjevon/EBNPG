@@ -5,8 +5,8 @@ Code for the numerical experiments of the manuscript:
 > *An explicit Bregman proximal-gradient method with endogenous nonmonotonicity for composite multiobjective optimization.*
 
 This repository contains the **code**. The numerical outputs behind every table and figure of the
-manuscript are archived in the data package `EBNPG_data_v3.0-jogo-r3.zip`, published as a release asset
-of the tag `v3.0-jogo-r3` and archived on Zenodo (the DOI is given on the release page). The package is
+manuscript are archived in the data package `EBNPG_data_v3.1-jogo-r3.zip`, published as a release asset
+of the tag `v3.1-jogo-r3` and archived on Zenodo (the DOI is given on the release page). The package is
 self-contained: it carries the same code under `Code/` together with the stored runs under `Code_Data/`,
 and it reproduces every table and figure without re-running any solver. No problem, run or data set
 reported in the manuscript is withheld.
@@ -17,7 +17,10 @@ files.
 
 ## Contents
 
-All routines live in `src/`. Run every command from that directory.
+All routines live in `src/`. The post-processing scripts resolve their inputs from their own location
+by searching upwards for the folder that contains both `Code/` and `Code_Data/`, so inside the data
+package they can be run from its root; the MATLAB drivers are run after adding `src/` (or `Code/`) to
+the path.
 
 ### Main routine
 
@@ -81,11 +84,18 @@ All reported numbers come from the stored outputs in the data package. After unz
 
 ```bash
 python Code_Data/aggregate_all.py              # rebuilds r2_tables.json from the stored runs
-python Code_Data/verify_manuscript.py          # checks the manuscript tables against it
 python Code/r3_postprocessing/r4_table4.py     # Table 4, from the certified stationarity table
+python Code_Data/recompute_sr.py               # the six success-rate columns of Table 4
+python Code_Data/cmh_test.py                   # the CMH test of Table 6
 python Code/generate_pareto_plots.py           # Figure 1
 python Code/generate_perf_profiles.py          # Figure 2
+python Code/r3_postprocessing/check_table4.py  # every cell of Table 4 against the LaTeX source
 ```
+
+`check_table4.py` and `verify_manuscript.py` also need the LaTeX source, which the data package does
+not include; run them in the source tree of the manuscript, where they compare the printed table and
+every prose claim with `r2_tables.json`. In the package they report that the sources are absent and
+exit successfully.
 
 `Code_Data/README.md` inside the package gives the full step order, the inputs of each step and the
 cross-checks. `Code_Data/aggregate_all.py` reads the certified stationarity table `crit_out_r4/` by

@@ -10,14 +10,42 @@ The table has 12 rows x 6 numeric columns = 72 cells:
 The LaTeX is parsed rather than retyped, so a stale manuscript cell cannot be
 excused by a stale constant in this script.  \\begin{revision} wrappers and
 thousands separators are stripped.  Exit code 1 on any mismatch.
+
+The data package has no LaTeX source, so inside it the script reports that and
+exits successfully, as verify_manuscript.py does.
 """
 import json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def find_up(*names):
+    """The nearest folder above this script that contains all the given names.
+
+    The script sits in ``patch/`` in the working tree and in
+    ``Code/r3_postprocessing/`` in the released package, so a fixed number of
+    ``..`` steps cannot be right in both.
+    """
+    d = HERE
+    while True:
+        if all(os.path.exists(os.path.join(d, n)) for n in names):
+            return d
+        up = os.path.dirname(d)
+        if up == d:
+            return None
+        d = up
+
+
+ROOT = find_up('EBNPG_2', 'Code_Data') or find_up('Code_Data') or HERE
 TEX = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-    HERE, '..', 'EBNPG_2', '0.1StrogNonMonProxGradMethdPZOY02October2026R1.tex')
+    ROOT, 'EBNPG_2', '0.1StrogNonMonProxGradMethdPZOY02October2026R1.tex')
 SRJ = sys.argv[2] if len(sys.argv) > 2 else os.path.join(
-    HERE, '..', 'Code_Data', 'common_sr.json')
+    ROOT, 'Code_Data', 'common_sr.json')
+
+if not os.path.exists(TEX):
+    print('manuscript source not present at %s' % TEX)
+    print('this data package does not include the LaTeX sources; nothing to verify.')
+    sys.exit(0)
 
 txt = open(TEX, encoding='utf-8').read()
 i0 = txt.find(r'\label{tab:common-stationarity}')
