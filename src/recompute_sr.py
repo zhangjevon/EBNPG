@@ -74,11 +74,14 @@ print('algs   :', algs)
 # ---- verdict-level adjudication of the uncertified points ------------------
 # Same rule as r4_table4.py: at the points whose value the pass could not
 # certify, the criterion is a statement about the minimiser of the subproblem,
-# so it is decided on the certified value and the certified displacement of
-# that minimiser (adjudicated.csv, produced by certify_adjudicated.py, which
-# also records the radius that certifies them).  A point marked 1 is counted as
-# a pass; everything else, including the six points at which the subproblem was
-# not solved at all, as a failure.
+# so it is decided from a bracket around that minimiser rather than from the
+# solver's output (adjudicated.csv, produced by certify_adjudicated.py: a
+# box-feasible point gives U >= Theta_1, a dual-feasible point gives L <=
+# Theta_1, and 1-strong convexity gives ||d - d_min|| <= sqrt(2(U-L)), so that
+# -Theta_1 lies in [-U,-L] and ||d_min|| in [max(0,||d||-r), ||d||+r]).  A point
+# marked 1 is counted as a pass; everything else, including points at which the
+# bracket fails to decide and the six points at which the subproblem was not
+# solved at all, as a failure.
 ADJ = {}
 adj_csv = os.path.join(OUT, 'adjudicated.csv')
 n_adj_th = n_adj_dn = 0
@@ -178,13 +181,17 @@ json.dump({'provenance': {
                'mask': 'a point with cert == 0 has no value and cannot count as a '
                        'success, except at the points adjudicated in adjudicated.csv',
                'adjudication': {
-                   'rule': 'the criterion is decided on the certified value and the '
-                           'certified displacement of the minimiser of the subproblem, '
-                           'with the radius that certifies them recorded in '
+                   'rule': 'the criterion is decided from a primal-dual bracket around the '
+                           'minimiser of the subproblem: U = Theta_1 at a box-feasible '
+                           'point, L = Phi(lambda,z) at a dual-feasible point, and '
+                           '||d - d_min|| <= sqrt(2(U-L)) by 1-strong convexity, so that '
+                           '-Theta_1 in [-U,-L] and ||d_min|| in '
+                           '[max(0,||d||-r), ||d||+r]; the bracket is recorded in '
                            'adjudicated.csv (certify_adjudicated.py)',
                    'passes_criticality': n_adj_th,
                    'passes_displacement': n_adj_dn,
-                   'not_passes_and_unsolved': 'counted as failures'},
+                   'undecided_and_unsolved': 'counted as failures, so the displacement '
+                                             'count is a lower bound'},
                'criteria': 'beta = 1, Euclidean kernel; -Theta_1 <= 1e-4 and ||d_1|| <= 1e-4',
                'coincides_with': 'r4_table4.py (same rule, different layout)',
                'reported_in': 'Table 4 of the manuscript (R3)'},

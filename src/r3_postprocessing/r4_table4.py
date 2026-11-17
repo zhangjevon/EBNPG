@@ -75,11 +75,14 @@ dn = np.where(MASK, dn, np.nan)
 # At 128 points the pass could not certify the *value*: the value the solver
 # returns there is positive by about 1e-9, which is impossible for -Theta_1.
 # The criterion is a statement about the minimiser of the subproblem, so the
-# verdict is taken on the certified value and the certified displacement of
-# that minimiser (columns theta_star, dnorm_star, with the certifying radius).
-# adjudicated.csv, written by certify_adjudicated.py, records the outcome for
-# all 128 points; the points it marks are counted as passes, the others (and
-# the six unsolved) as failures.
+# verdict is taken from a bracket around that minimiser rather than from the
+# solver's output: a box-feasible point gives U, a dual-feasible point gives L,
+# and 1-strong convexity gives ||d - d_min|| <= sqrt(2(U-L)), hence
+# -Theta_1 in [-U,-L] and ||d_min|| in [max(0,||d||-r), ||d||+r].
+# adjudicated.csv, written by certify_adjudicated.py, records the bracket
+# (columns U, L, radius, dhat and the four interval endpoints) and the outcome
+# for all 134 points -- the 128 plus the six at which the solve returned no
+# solution.  The points it marks are counted as passes, the others as failures.
 ADJ_TH = np.zeros_like(th, dtype=bool)
 ADJ_DN = np.zeros_like(dn, dtype=bool)
 adj_csv = os.path.join(CRIT, 'adjudicated.csv')

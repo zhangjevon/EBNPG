@@ -5,6 +5,54 @@ This release is a modified version of <https://github.com/lfprudente/MPG>
 repository. Files marked *modified* differ from the corresponding MPG file;
 files marked *added* are new in this release.
 
+## Revision 3.3 --- tag `v3.3-jogo-r3`
+
+Two numbers printed in Table 4 change, each by one unit in the last printed digit, and the certificate
+behind every verdict at the disputed points is rebuilt. The change was forced by a defect in `v3.2`: the
+criterion it used to admit a point --- the `p`-block of the KKT residual of the model at the point the
+solver returned --- bounds the distance to the minimiser only when that solve has converged, which is
+precisely what was in doubt. Of the 31 points `v3.2` admitted, 27 came from solves that stopped at the
+iteration limit, 2 from solves flagged `solved inaccurate`, and 2 from solves that converged.
+
+`certify_adjudicated.py` now decides each of the 134 disputed points from a primal--dual bracket that
+uses no solver status and no multiplier of a solve that has not converged. With `Theta_1` the common
+model, `h_i(y) = delta ||B_i^{-T} y||_1`, `g_i = grad f_i(x)`, a box-feasible `d` gives the upper bound
+
+    U = Theta_1(d) = max_i { <g_i, d> + h_i(x + d) - h_i(x) } + ||d||^2 / 2,
+
+and, for `lam` in the simplex and `||z_i||_inf <= 1`, with `q_i = delta B_i^{-1} z_i` and
+`a = sum_i lam_i (g_i + q_i)`, the dual-feasible lower bound
+
+    L = Phi(lam, z) = sum_i lam_i ( <q_i, x> - h_i(x) ) + min_{d in box} [ ||d||^2/2 + <a, d> ],
+
+which is valid because `<q_i, y> <= h_i(y)`. `1`-strong convexity of `Theta_1` on the box turns the
+objective gap into the displacement bound `||d - d_1(x)|| <= sqrt(2 (U - L))`, so that `-Theta_1(x)`
+lies in `[-U, -L]` and `||d_1(x)||` in `[max(0, ||d|| - sqrt(2(U-L))), ||d|| + sqrt(2(U-L))]`. The
+feasibility of both points is verified rather than assumed.
+
+Over the 134 points (the 128 the ladder could not certify plus the 6 at which the numeric solve returned
+no solution, `info_orig = -2`), the bracket decides the criticality criterion at all 134 and the
+displacement criterion at 130: 31 pass criticality with `-Theta_1 <= 2.05e-6`, 28 pass displacement with
+`||d_1|| <= 9.93e-5`, 102 of the 103 that fail criticality fail displacement too with `||d_1|| >= 4.85`,
+and 4 are undecided on displacement (MGH26/EBNPG-N1 run 45, MGH26/EBNPG-N3 run 40, ZLT1/EBNPG-N3 run 3,
+NIC2/EBNPG-N7 run 39) and are counted as failures, so 28 is a lower bound. The criticality margin is
+thin at one point only: at NIC2 with EBNPG-N7 run 39 the bracket gives `-Theta_1` in
+`[1.0198e-4, 2.352]`, two per cent above the tolerance, and at the other 102 of the 103 it is at least
+11.9. The six points that previously counted as failures by default are now decided with large margins
+(`-Theta_1 >= 7.4e5` at the five AP3 points, `11.85` at the sixth, BK1 with EBNPG-N3).
+
+Changed (`Code_Data/crit_out_r4/`):
+
+- `adjudicated.csv` rewritten with 134 rows and columns `U`, `L`, `radius`, `dhat`, the four interval
+  endpoints `neg_theta_lo`, `neg_theta_hi`, `dnorm_lo`, `dnorm_hi`, the number of cutting planes used,
+  and the two verdicts; `status` is retained for diagnosis and enters no verdict.
+- `common_sr.json` regenerated: the two affected averages of the displacement column become 93.4048
+  (EBNPG-N3) and 93.3333 (EBNPG-N1). The criticality column is unchanged at 31 passes.
+
+Changed (Table 4 of the manuscript): `EBNPG-N3` from 93.5 to 93.4 and `EBNPG-N1` from 93.4 to 93.3, both
+in the displacement column, no entry changing rank. Every other table, Figures 1 and 2, and every other
+JSON are unchanged.
+
 ## Revision 3.2 --- tag `v3.2-jogo-r3`
 
 No number printed in the manuscript changes. One count changes, and the way it is obtained.
@@ -50,6 +98,10 @@ Changed (`Code_Data/crit_out_r4/`):
 
 Unchanged: all 72 cells of Table 4 (`check_table4.py`, 72 of 72), Figures 1 and 2, every other table, and
 every other JSON.
+
+The certificate described in this section does not hold, and the counts it produced are superseded by
+Revision 3.3: the `p`-block of the KKT residual bounds the distance to the minimiser only for a solve
+that has converged, and 29 of the 31 points admitted here came from solves that had not.
 
 ## Revision 3.1 --- tag `v3.1-jogo-r3`
 

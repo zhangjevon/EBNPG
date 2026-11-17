@@ -3,9 +3,12 @@
 function certify_adjudicated()
 % CERTIFY_ADJUDICATED  Step 1 of 2: export the disputed subproblems.
 %
-% For every triple listed in Code_Data/crit_out_r4/adjudicated_uncertified.csv
-% this script reproduces the instance exactly as run_problem.m does, rebuilds
-% the common proximal subproblem at the stored final iterate
+% For every triple that needs additional verification -- the 128 listed in
+% Code_Data/crit_out_r4/adjudicated_uncertified.csv plus the six at which the
+% numeric solve of the subproblem in retry_log.csv returned no verified
+% solution (method = -1) -- this script reproduces the instance exactly as
+% run_problem.m does, rebuilds the common proximal subproblem at the stored
+% final iterate
 %
 %   Theta(x,d) = max_i { grad f_i(x)'d + h_i(x+d) - h_i(x) } + 1/2 ||d||^2,
 %   h_i(y)     = delta * || B_i^{-T} y ||_1 ,   B_i = A{i}(1:n,:),
@@ -13,13 +16,18 @@ function certify_adjudicated()
 % and writes its data (JG, H, the box, and the LP blocks A{i}, b{i}) to
 % Code_Data/crit_out_r4/qp_export/<problem>.mat, for certify_adjudicated.py.
 %
+% The six are exported because the subproblem is 1-strongly convex on a closed
+% box and therefore has a unique minimiser: the earlier record had no verified
+% solution for them, not a subproblem without one, and they are decided by the
+% same primal-dual bounds.
+%
 % Step 2 is
 %   python Code/r3_postprocessing/certify_adjudicated.py \
 %          Code_Data/crit_out_r4/qp_export \
 %          Code_Data/crit_out_r4/adjudicated_uncertified.csv \
 %          Code_Data/crit_out_r4/adjudicated.csv
-% which solves these QPs with a duality-based optimality certificate and
-% writes the certified per-point record.
+% which brackets the minimiser of each subproblem with a primal-feasible upper
+% bound and a dual-feasible lower bound and writes the per-point record.
 %
 % Usage (from anywhere):  certify_adjudicated
 %
@@ -47,6 +55,24 @@ fgetl(fid);
 C = textscan(fid,'%s %s %d %*[^\n]','Delimiter',',');
 fclose(fid);
 probs = C{1}; algs = C{2}; runs = C{3};
+
+% The six points at which the numeric solve of the subproblem returned no
+% verified solution (method = -1 in retry_log.csv) belong in the same record.
+fid = fopen(fullfile(crit_dir,'retry_log.csv'),'r');
+if fid >= 0
+    fgetl(fid);
+    D = textscan(fid,'%s %s %d %d %d %*[^\n]','Delimiter',',');
+    fclose(fid);
+    take = (D{5} == -1);
+    if any(take)
+        probs = [probs; D{1}(take)];
+        algs  = [algs;  D{2}(take)];
+        runs  = [runs;  D{3}(take)];
+        fprintf('appending %d points with no verified subproblem solution\n', sum(take));
+    end
+else
+    warning('retry_log.csv not found in %s; the six unsolved points are not exported', crit_dir);
+end
 up = unique(probs,'stable');
 
 alg_names = {'MPG-Explicit','MPG-Armijo','MPG-Implicit','CNPG-Max','CNPG-Avg', ...

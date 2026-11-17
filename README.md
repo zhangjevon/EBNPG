@@ -5,8 +5,8 @@ Code for the numerical experiments of the manuscript:
 > *An explicit Bregman proximal-gradient method with endogenous nonmonotonicity for composite multiobjective optimization.*
 
 This repository contains the **code**. The numerical outputs behind every table and figure of the
-manuscript are archived in the data package `EBNPG_data_v3.2-jogo-r3.zip`, published as a release asset
-of the tag `v3.2-jogo-r3` and archived on Zenodo (the DOI is given on the release page). The package is
+manuscript are archived in the data package `EBNPG_data_v3.3-jogo-r3.zip`, published as a release asset
+of the tag `v3.3-jogo-r3` and archived on Zenodo (the DOI is given on the release page). The package is
 self-contained: it carries the same code under `Code/` together with the stored runs under `Code_Data/`,
 and it reproduces every table and figure without re-running any solver. No problem, run or data set
 reported in the manuscript is withheld.
@@ -72,7 +72,7 @@ These produce Table 4 and Figure 1 from the stored outputs.
 
 - **`recompute_common_stationarity_r4.m`** — re-solves and certifies the common proximal subproblem at every point the first pass left unsolved.
 - **`cert_sample.m`** — independent re-certification of a systematic sample of the first-pass values.
-- **`certify_adjudicated.m`**, **`certify_adjudicated.py`** — export the subproblem at each of the 128 disputed points and solve it with an optimality certificate, independently of the `quadprog` ladder that produced the disputed reading; the two steps write `Code_Data/crit_out_r4/adjudicated.csv`, which `r4_table4.py` reads.
+- **`certify_adjudicated.m`**, **`certify_adjudicated.py`** — export the subproblem at each of the 134 disputed points (the 128 the re-solve could not certify and the 6 at which the numeric solve returned no solution) and decide it from a primal--dual bracket, independently of the `quadprog` ladder that produced the disputed reading: a box-feasible point gives `U`, a dual-feasible point gives `L`, and `1`-strong convexity turns the gap into `||d - d_min|| <= sqrt(2(U-L))`. No solver status and no multiplier of an unconverged solve enters a verdict. The two steps write `Code_Data/crit_out_r4/adjudicated.csv`, which `r4_table4.py` reads.
 - **`export_pareto_composite.m`** — evaluates the composite objectives at the stored final points (no solver re-run).
 - **`export_instances.m`** — exports the instance data (reference points, `B_i`, `delta`).
 - **`r4_table4.py`**, **`r4_numbers.py`**, **`r4_audit.py`** — build Table 4 and audit it against the stored `cert` flags.
