@@ -5,6 +5,52 @@ This release is a modified version of <https://github.com/lfprudente/MPG>
 repository. Files marked *modified* differ from the corresponding MPG file;
 files marked *added* are new in this release.
 
+## Revision 3.2 --- tag `v3.2-jogo-r3`
+
+No number printed in the manuscript changes. One count changes, and the way it is obtained.
+
+At 128 of the returned points of the common-stationarity study, neither the first pass nor the re-solve
+ladder certified a minimiser of the proximal subproblem, and the per-point record was taken at the point
+the solver had returned. The manuscript states the two criteria at the minimiser of that subproblem, so
+the displacement of the returned point is not the quantity it defines, and the two differ by more than
+the tolerance at two of the 128: MGH16 with CNPG-Max at run 63 (returned point 7.56e-4 from `x`,
+minimiser 8.29e-5) and MOP5 with EBNPG-N0 at run 7 (returned 1.15e-4, minimiser 9.2e-15). With the
+criterion read at the minimiser, the displacement column passes 31 points rather than 29 --- the same 31
+that meet the criticality criterion --- and 103 of the 134 uncertified points pass neither, the six at
+which the subproblem has no solution included.
+
+Added (`src/r3_postprocessing/`):
+
+- `certify_adjudicated.m` --- rebuilds each of the 128 subproblems at the stored final iterate and writes
+  it to a `.mat` file in the variables of the proximal subproblem: `p = x + d`, the simplex variables of
+  the `l1` epigraph of the constraint functions, and the free scaling variable that makes the epigraph
+  exact. The subproblem is handed over in a form a solver of the caller's choice can take, so the
+  verdict does not have to come from the code whose output was in doubt.
+- `certify_adjudicated.py` --- solves the exported subproblems with OSQP and rewrites
+  `adjudicated.csv`. OSQP is used deliberately: the disputed points came out of `quadprog`'s
+  interior-point method, and an independent solver is what makes the second reading independent. A
+  candidate is accepted only when the `p`-block of the KKT residual of the model, which at an optimum is
+  an element of the subdifferential of the objective, bounds its distance to the minimiser; the radius
+  is written to the record, and a verdict is entered only when the whole interval it leaves for the
+  value and for the displacement lies on one side of the tolerance.
+
+Changed (`Code_Data/crit_out_r4/`):
+
+- `adjudicated.csv` now carries the certified value and displacement of the minimiser (`theta_star`,
+  `dnorm_star`), the radius that certifies them, the solver status and the two verdicts
+  (`pass_theta`, `pass_dnorm`); the readings at the returned point are kept beside them as `ret_theta`
+  and `ret_dnorm`, and the file as it stood in `v3.1` is preserved as `adjudicated_uncertified.csv`.
+  Over the 128 points the radius has median 1.0e-7 and maximum 2.2e-5, and is at most 1.25e-6 at the 31
+  points that pass.
+- `common_sr.json` regenerated from the new record. The two averages the change touches move by 0.024
+  percentage points (CNPG-Max 92.190 -> 92.214 in the displacement column, EBNPG-N0 90.262 -> 90.286),
+  which is invisible at the precision the table is printed to, and the rank correlation between the
+  displacement column and the flag column becomes 0.998 rather than 1.000: CNPG-Max and EBNPG-N5, tied
+  at 92.1% under the flag, separate in the third decimal (92.214% and 92.190%).
+
+Unchanged: all 72 cells of Table 4 (`check_table4.py`, 72 of 72), Figures 1 and 2, every other table, and
+every other JSON.
+
 ## Revision 3.1 --- tag `v3.1-jogo-r3`
 
 No reported number changes with respect to `v3.0-jogo-r3`. The differences are in how the package

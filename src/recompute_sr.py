@@ -73,11 +73,12 @@ print('algs   :', algs)
 
 # ---- verdict-level adjudication of the uncertified points ------------------
 # Same rule as r4_table4.py: at the points whose value the pass could not
-# certify, the criterion is a statement about the point, so it is decided on
-# the value the model attains at the returned point (adjudicated.csv, produced
-# by make_adjudicated.py from retry_log.csv) and on the displacement there.
-# A point marked 1 is counted as a pass; everything else, including the six
-# points at which the subproblem was not solved at all, as a failure.
+# certify, the criterion is a statement about the minimiser of the subproblem,
+# so it is decided on the certified value and the certified displacement of
+# that minimiser (adjudicated.csv, produced by certify_adjudicated.py, which
+# also records the radius that certifies them).  A point marked 1 is counted as
+# a pass; everything else, including the six points at which the subproblem was
+# not solved at all, as a failure.
 ADJ = {}
 adj_csv = os.path.join(OUT, 'adjudicated.csv')
 n_adj_th = n_adj_dn = 0
@@ -177,8 +178,10 @@ json.dump({'provenance': {
                'mask': 'a point with cert == 0 has no value and cannot count as a '
                        'success, except at the points adjudicated in adjudicated.csv',
                'adjudication': {
-                   'rule': 'the criterion is decided on the value the model attains at '
-                           'the returned point and on the displacement there',
+                   'rule': 'the criterion is decided on the certified value and the '
+                           'certified displacement of the minimiser of the subproblem, '
+                           'with the radius that certifies them recorded in '
+                           'adjudicated.csv (certify_adjudicated.py)',
                    'passes_criticality': n_adj_th,
                    'passes_displacement': n_adj_dn,
                    'not_passes_and_unsolved': 'counted as failures'},

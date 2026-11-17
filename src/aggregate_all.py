@@ -126,11 +126,11 @@ for p in probs:
     INFO[p] = np.asarray(gv(o, 'info'))
 
 # ---- verdict-level adjudication -------------------------------------------
-# Of the 128 valued-but-uncertified points, 31 satisfy the criticality criterion
-# and 29 the displacement one when it is decided on the model value at the
-# returned point (see make_adjudicated.py); these are counted as passes here,
-# exactly as in r4_table4.py, so that the two never disagree.  The remaining 97
-# and 99, and the six unsolved points, count as failures.
+# Of the 128 valued-but-uncertified points, 31 satisfy both criteria once the
+# verdict is taken on the certified minimiser of the subproblem rather than on
+# the returned iterate (see certify_adjudicated.py); these are counted as
+# passes here, exactly as in r4_table4.py, so that the two never disagree.  The
+# remaining 97, and the six unsolved points, count as failures.
 ADJ_TH = {}; ADJ_DN = {}
 for p in probs:
     ADJ_TH[p] = np.zeros((12, 100), dtype=bool)

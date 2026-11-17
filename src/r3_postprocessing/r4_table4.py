@@ -74,11 +74,12 @@ dn = np.where(MASK, dn, np.nan)
 # ---- verdict-level adjudication of the uncertified points ------------------
 # At 128 points the pass could not certify the *value*: the value the solver
 # returns there is positive by about 1e-9, which is impossible for -Theta_1.
-# The criterion is a statement about the point, so it is decided on the value
-# the model attains at the returned point (retry_log.csv, column theta_def) and
-# on the displacement of that point.  adjudicated.csv, written by
-# make_adjudicated.py, records the outcome for all 128 points; the points it
-# marks are counted as passes, the others (and the six unsolved) as failures.
+# The criterion is a statement about the minimiser of the subproblem, so the
+# verdict is taken on the certified value and the certified displacement of
+# that minimiser (columns theta_star, dnorm_star, with the certifying radius).
+# adjudicated.csv, written by certify_adjudicated.py, records the outcome for
+# all 128 points; the points it marks are counted as passes, the others (and
+# the six unsolved) as failures.
 ADJ_TH = np.zeros_like(th, dtype=bool)
 ADJ_DN = np.zeros_like(dn, dtype=bool)
 adj_csv = os.path.join(CRIT, 'adjudicated.csv')
