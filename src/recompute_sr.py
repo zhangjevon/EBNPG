@@ -1,5 +1,3 @@
-# Added for the EBNPG manuscript (third revision).
-# SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """Success rates under the original flag and under the common criteria.
 
@@ -13,17 +11,13 @@ success rate is at least 90%), computed
     ||d_1(x)|| <= 1e-4, each with and without the additional requirement that
     the algorithm declared the run successful.
 
-Input.  ``crit_out_r4/<prob>_crit.mat`` (the final pass) and, when present,
-``crit_out_r4/adjudicated.csv``.  The values the pass could not certify are
-masked exactly as in ``aggregate_all.py`` and ``r4_table4.py``: a point whose
-``cert`` flag is zero is treated as having no value, so it cannot count as a
-success -- except at the points that ``adjudicated.csv`` decides, where the
-criterion is settled on the value the model attains at the returned point (the
-value the solver returns there is positive by about 1e-9, which no value of
-Theta_1 can be) and on the displacement of that point.  Set ``EBPGM_CRIT`` to
-read a different table (for instance ``crit_out``, the first pass, where every
-stored value is certified by construction and the 607 re-solved points are
-absent).
+Input.  ``crit_out_r4/<prob>_crit.mat``, ``adjudicated.csv``, and its bound
+``adjudication_witnesses.json``.  Shared ``adjudication.py`` requires one unique
+adjudication for each of the 134 uncertified points.  It recomputes each verdict
+from the interval at the requested tolerance; an undecided interval or missing
+evidence stops the script.  Algorithm success flags do not affect criterion A.
+``EBPGM_DATA`` selects the data root and ``EBPGM_CRIT`` selects an absolute
+certificate directory or a directory relative to that data root.
 
 The numbers of this file are the ones printed in Table 4 of the manuscript.
 They coincide with ``r4_table4.py``; the two scripts differ only in layout.
@@ -32,77 +26,29 @@ Earlier versions of this package shipped a ``common_sr.json`` produced from
 adjudication and without the displacement criterion; that file no longer
 reproduces and has been replaced.
 """
-import numpy as np, scipy.io as sio, os, json
+import numpy as np, os, json
+from adjudication import CommonCriteria
 
 _BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
-OUT = os.environ.get('EBPGM_CRIT') or os.path.join(_BASE, 'crit_out_r4')
+OUT = os.path.join(_BASE, os.environ.get('EBPGM_CRIT', 'crit_out_r4'))
 probs = ['AP1','AP3','AP4','BK1','DD1','DGO2','DTLZ2','FA1','Far1','FDS','Hil1',
          'IKK1','KW2','Lov4','Lov5','Lov6','LTDZ','MGH16','MGH26','MGH33','MLF2',
          'MMR1','MMR2','MMR3','MOP5','MOP6','MOP7','NIC1','NIC2','NIC3','NIM1',
          'NSP1','NSP2','PNR','QV1','SK2','SP1','Toi4','Toi9','VU2','ZDT6','ZLT1']
 
-algs = None
-CR = {}   # CR[p][ai] = (crit, dnorm, info)   crit = -Theta_1, NaN if not certified
-for p in probs:
-    f = os.path.join(OUT, p + '_crit.mat')
-    o = sio.loadmat(f)['out']
-    def gv(e, n):
-        # unwrap only while the container is a scalar object cell
-        v = e[n]
-        while v.dtype == object and v.size == 1:
-            v = v.reshape(-1)[0]
-        return v
-    raw_names = np.asarray(gv(o, 'algorithm')).ravel()
-    names = [str(np.asarray(x).ravel()[0]) for x in raw_names]
-    if algs is None:
-        algs = names
-    c = np.asarray(gv(o, 'crit'), dtype=float)
-    d = np.asarray(gv(o, 'dnorm'), dtype=float)
-    info = np.asarray(gv(o, 'info'), dtype=float)
-    try:                                   # present only in the R4 pass
-        ok = np.asarray(gv(o, 'cert'), dtype=float) > 0
-        c = np.where(ok, c, np.nan)
-        d = np.where(ok, d, np.nan)
-    except (KeyError, ValueError):
-        pass
-    CR[p] = (c, d, info)
-
+algs = ['MPG-Explicit','MPG-Armijo','MPG-Implicit','CNPG-Max','CNPG-Avg',
+        'EBNPG-N0','EBNPG-N1','EBNPG-N2','EBNPG-N3','EBNPG-N5','EBNPG-N6','EBNPG-N7']
+COMMON = CommonCriteria(OUT, probs, algs)
+CR = {p: (COMMON.criticality[pi], COMMON.displacement[pi], COMMON.info[pi])
+      for pi, p in enumerate(probs)}
 nA = len(algs)
 print('table  :', OUT)
 print('algs   :', algs)
-
-# ---- verdict-level adjudication of the uncertified points ------------------
-# Same rule as r4_table4.py: at the points whose value the pass could not
-# certify, the criterion is a statement about the minimiser of the subproblem,
-# so it is decided from a bracket around that minimiser rather than from the
-# solver's output (adjudicated.csv, produced by certify_adjudicated.py: a
-# box-feasible point gives U >= Theta_1, a dual-feasible point gives L <=
-# Theta_1, and 1-strong convexity gives ||d - d_min|| <= sqrt(2(U-L)), so that
-# -Theta_1 lies in [-U,-L] and ||d_min|| in [max(0,||d||-r), ||d||+r]).  A point
-# marked 1 is counted as a pass; everything else, including points at which the
-# bracket fails to decide and the six points at which the subproblem was not
-# solved at all, as a failure.
-ADJ = {}
-adj_csv = os.path.join(OUT, 'adjudicated.csv')
-n_adj_th = n_adj_dn = 0
-if os.path.exists(adj_csv):
-    import csv as _csv
-    ip = {n: i for i, n in enumerate(probs)}
-    ia = {n: i for i, n in enumerate(algs)}
-    for p in probs:
-        ADJ[p] = (np.zeros((nA, 100), dtype=bool), np.zeros((nA, 100), dtype=bool))
-    for r in _csv.DictReader(open(adj_csv)):
-        pi, ai, ri = ip[r['prob']], ia[r['alg']], int(r['run']) - 1
-        if np.isfinite(CR[r['prob']][0][ai, ri]):      # already certified: ignore
-            continue
-        ADJ[r['prob']][0][ai, ri] = r['pass_theta'] == '1'
-        ADJ[r['prob']][1][ai, ri] = r['pass_dnorm'] == '1'
-    n_adj_th = int(sum(v[0].sum() for v in ADJ.values()))
-    n_adj_dn = int(sum(v[1].sum() for v in ADJ.values()))
-    print('adjudicated : %d points decided from adjudicated.csv '
-          '(Theta %d, disp %d)' % (n_adj_th + n_adj_dn, n_adj_th, n_adj_dn))
-else:
-    print('adjudicated : adjudicated.csv not found, uncertified points count as failures')
+DIAGNOSTICS = COMMON.diagnostics()
+n_adj_th = DIAGNOSTICS['passes_criticality']
+n_adj_dn = DIAGNOSTICS['passes_displacement']
+print('adjudicated : %d unique points (Theta %d pass, disp %d pass, undecided 0)'
+      % (DIAGNOSTICS['adjudicated_points'], n_adj_th, n_adj_dn))
 
 # distribution of -Theta for originally-failed vs originally-successful runs
 succ_vals, fail_vals = [], []
@@ -116,6 +62,7 @@ for p in probs:
         fail_vals.extend(v2.tolist())
 succ_vals = np.array(succ_vals); fail_vals = np.array(fail_vals)
 print('\n-Theta distribution')
+print('  retained scalar evaluations only; adjudicated intervals excluded from quantiles')
 print('  originally successful: n=%d  median=%.2e  q90=%.2e  q99=%.2e  max=%.2e'
       % (len(succ_vals), np.median(succ_vals), np.quantile(succ_vals, .90),
          np.quantile(succ_vals, .99), succ_vals.max()))
@@ -126,19 +73,7 @@ print('  originally failed    : n=%d  min=%.2e  q01=%.2e  q10=%.2e  median=%.2e'
 
 def sr_table(field, tol, mode):
     """mode 'A': the common criterion alone; 'B': flag and the criterion."""
-    per_prob = np.full((len(probs), nA), np.nan)
-    for pi, p in enumerate(probs):
-        c, d, info = CR[p]
-        v = c if field == 'crit' else d
-        adj = ADJ[p][0 if field == 'crit' else 1] if p in ADJ else None
-        for ai in range(nA):
-            m = np.isfinite(v[ai]) & (v[ai] <= tol)
-            if adj is not None:
-                m = m | adj[ai]                      # decided point by point
-            if mode == 'B':
-                m = m & (info[ai] == 0)
-            per_prob[pi, ai] = 100.0 * m.sum() / v[ai].size
-    return per_prob
+    return COMMON.rates(field, tol, mode)
 
 
 def flag_table():
@@ -177,21 +112,20 @@ for ai in range(nA):
 json.dump({'provenance': {
                'script': 'recompute_sr.py',
                'inputs': [os.path.basename(OUT.rstrip('/\\')) + '/<problem>_crit.mat',
-                          os.path.basename(OUT.rstrip('/\\')) + '/adjudicated.csv'],
-               'mask': 'a point with cert == 0 has no value and cannot count as a '
-                       'success, except at the points adjudicated in adjudicated.csv',
-               'adjudication': {
-                   'rule': 'the criterion is decided from a primal-dual bracket around the '
-                           'minimiser of the subproblem: U = Theta_1 at a box-feasible '
-                           'point, L = Phi(lambda,z) at a dual-feasible point, and '
-                           '||d - d_min|| <= sqrt(2(U-L)) by 1-strong convexity, so that '
-                           '-Theta_1 in [-U,-L] and ||d_min|| in '
-                           '[max(0,||d||-r), ||d||+r]; the bracket is recorded in '
-                           'adjudicated.csv (certify_adjudicated.py)',
-                   'passes_criticality': n_adj_th,
-                   'passes_displacement': n_adj_dn,
-                   'undecided_and_unsolved': 'counted as failures, so the displacement '
-                                             'count is a lower bound'},
+                          os.path.basename(OUT.rstrip('/\\')) + '/adjudicated.csv',
+                          os.path.basename(OUT.rstrip('/\\')) + '/adjudication_witnesses.json'],
+               'mask': 'certified values plus interval decisions for every uncertified '
+                       'point; missing or undecided evidence raises an error',
+               'adjudication': DIAGNOSTICS,
+               'distribution_coverage': {
+                   'summary_basis': 'retained scalar evaluations only; no interval point estimates',
+                   'originally_successful_runs': int((COMMON.info == 0).sum()),
+                   'successful_retained_scalar_values': int(len(succ_vals)),
+                   'successful_adjudicated_intervals': int(((COMMON.info == 0) & ~COMMON.certified).sum()),
+                   'originally_failed_runs': int((COMMON.info != 0).sum()),
+                   'failed_retained_scalar_values': int(len(fail_vals)),
+                   'failed_adjudicated_intervals': int(((COMMON.info != 0) & ~COMMON.certified).sum()),
+               },
                'criteria': 'beta = 1, Euclidean kernel; -Theta_1 <= 1e-4 and ||d_1|| <= 1e-4',
                'coincides_with': 'r4_table4.py (same rule, different layout)',
                'reported_in': 'Table 4 of the manuscript (R3)'},

@@ -1,120 +1,72 @@
-# An Explicit Bregman Proximal-Gradient Method with Endogenous Nonmonotonicity for Composite Multiobjective Optimization
+# EBNPG numerical implementation
 
-Code for the numerical experiments of the manuscript:
+Companion code for *An explicit Bregman proximal-gradient method with endogenous
+nonmonotonicity for composite multiobjective optimization*, by Jian-Wen Peng,
+Jie-Wen Zhang, Orizon P. Ferreira and Jen-Chih Yao.
 
-> *An explicit Bregman proximal-gradient method with endogenous nonmonotonicity for composite multiobjective optimization.*
+## Final numerical revision: v3.4-jogo-r3
 
-This repository contains the **code**. The numerical outputs behind every table and figure of the
-manuscript are archived in the data package `EBNPG_data_v3.3-jogo-r3.zip`, published as a release asset
-of the tag `v3.3-jogo-r3` and archived on Zenodo (the DOI is given on the release page). The package is
-self-contained: it carries the same code under `Code/` together with the stored runs under `Code_Data/`,
-and it reproduces every table and figure without re-running any solver. No problem, run or data set
-reported in the manuscript is withheld.
+This revision completes the common-displacement comparison at the stored final
+iterates. The accompanying versioned data archive contains all 42 problems and
+50,400 principal runs, the documented twelve-algorithm MGH33 rerun, adaptive and
+fixed-kernel outputs, instance data and figures. No main optimization run was
+repeated for this final-point verification.
 
-The code is a modified version of the MPG code of Bello--Cruz, Melo, Prudente and Serra
-(<https://github.com/lfprudente/MPG>, GNU GPL-3.0); see `CHANGES.md` for the list of added and modified
-files.
+At the 134 points requiring additional checks, 31 satisfy both common criteria
+and 103 satisfy neither. The exact per-point witnesses are stored in
+`Code_Data/crit_out_r4/adjudication_witnesses.json`. Candidate solvers only
+propose feasible points. Exact rational arithmetic evaluates the exported
+binary64 coefficient model, and integer bounds enclose square roots. Original
+transcendental derivatives before numerical export are not claimed to be exact.
+Every reported tolerance is applied to its own interval; an undecided result
+stops aggregation instead of counting as a failed optimization run.
 
-## Contents
+The data archive `EBNPG_data_v3.4-jogo-r3.zip` is prepared separately from this
+code-only repository. Its metadata records this code snapshot, the frozen
+baseline archive and file checksums. Publication status and an optional version
+DOI are recorded by the release process; no new DOI is assumed here.
 
-All routines live in `src/`. The post-processing scripts resolve their inputs from their own location
-by searching upwards for the folder that contains both `Code/` and `Code_Data/`, so inside the data
-package they can be run from its root; the MATLAB drivers are run after adding `src/` (or `Code/`) to
-the path.
+## Layout
 
-### Main routine
+`src/` contains the MATLAB algorithms, test functions and Python aggregation
+routines. `src/r3_postprocessing/` contains final-point export, certificate,
+independent replay and Table 4 routines. In the data archive these are installed
+under `Code/`, `Code/r3_postprocessing/` and `Code_Data/` as documented there.
+The original algorithms and test inputs remain as specified in the manuscript.
 
-- **`main.m`** — demonstration driver: selects the problem and the algorithm, runs ten algorithms over 100 random starting points and prints a summary table.
+## Reproduction from the data archive
 
-### Solvers
+From a clean unpack of the archive:
 
-- **`EBNPG.m`** — explicit Bregman nonmonotone proximal-gradient method (variants N0--N3, N5--N7).
-- **`EBNPG_W.m`** — EBNPG with the adaptive BB-type diagonal variable metric.
-- **`CNPG.m`** — composite nonmonotone proximal-gradient baselines (max-type and average-type).
-- **`ProxGrad.m`** — multiobjective proximal gradient (explicit, Armijo and implicit variants).
-
-### Auxiliary routines
-
-- **`inip.m`** — initial parameters of the test problems.
-- **`evalg.m`**, **`evalgradg.m`**, **`evalh.m`**, **`datas.m`** — objective functions, their gradients, the constraints and their data.
-- **`subproblemProxGrad.m`** — solver of the proximal subproblem.
-- **`armijo.m`**, **`explicitLS.m`**, **`explicitLSone.m`**, **`implicitLS.m`** — line searches.
-
-### Experiment drivers
-
-- **`run_all_experiments.m`** — master driver of the principal experiment (42 problems).
-- **`run_problem.m`** — single-problem driver; reproduces the stored starting-point assignment of all 42 problems (see its header comments for the protocol).
-- **`weighted_run.m`** — adaptive EBNPG-W study.
-- **`noneuclid_run.m`** — fixed non-Euclidean kernel study.
-- **`qp_count_study.m`**, **`qp_count_full.m`**, **`qp_one.m`** — proximal (QP) solve counting.
-- **`run_ebnpg_silent.m`**, **`run_crit.m`**, **`recompute_common_stationarity.m`** — supporting drivers.
-- **`export_all_results.m`**, **`export_archive.m`** — export of stored runs and instance data.
-- **`r2_rerun_mgh33.m`**, **`r2_qp_mgh33.m`**, **`r2_verify_k0.m`** — documented MGH33 rerun and its checks.
-- **`probe_euclid.m`**, **`probe_wratio.m`** — diagnostics used during the revision.
-
-### Post-processing (Python)
-
-- **`aggregate_all.py`** — master aggregation of the manuscript tables.
-- **`regen_summary.py`** — rebuild `all_summary.csv`.
-- **`r2_weighted_agg.py`**, **`r2_oracle_cost.py`** — Table 9 and oracle-cost numbers.
-- **`generate_perf_profiles.py`** — performance-profile figure (Figure 2 of the manuscript).
-- **`generate_pareto_plots.py`** — Pareto-front figure (Figure 1), drawn in the plane of the composite
-  objectives `F_i = f_i + g_i`. It reads `pareto_data_composite.csv`, produced by
-  `r3_postprocessing/export_pareto_composite.m`; the older `results/pareto_data.csv` holds the smooth
-  components only and is used as a fallback.
-- **`r2_perf_profiles.py`** — earlier version of the performance-profile figure.
-- **`cmh_test.py`**, **`paired_test.py`**, **`mcnemar.py`** — statistical tests.
-- **`build_kernel.py`**, **`build_tab5.py`**, **`recompute_sr.py`** — supporting aggregations.
-
-### Third-revision scripts (`r3_postprocessing/`)
-
-These produce Table 4 and Figure 1 from the stored outputs.
-
-- **`recompute_common_stationarity_r4.m`** — re-solves and certifies the common proximal subproblem at every point the first pass left unsolved.
-- **`cert_sample.m`** — independent re-certification of a systematic sample of the first-pass values.
-- **`certify_adjudicated.m`**, **`certify_adjudicated.py`** — export the subproblem at each of the 134 disputed points (the 128 the re-solve could not certify and the 6 at which the numeric solve returned no solution) and decide it from a primal--dual bracket, independently of the `quadprog` ladder that produced the disputed reading: a box-feasible point gives `U`, a dual-feasible point gives `L`, and `1`-strong convexity turns the gap into `||d - d_min|| <= sqrt(2(U-L))`. No solver status and no multiplier of an unconverged solve enters a verdict. The two steps write `Code_Data/crit_out_r4/adjudicated.csv`, which `r4_table4.py` reads.
-- **`export_pareto_composite.m`** — evaluates the composite objectives at the stored final points (no solver re-run).
-- **`export_instances.m`** — exports the instance data (reference points, `B_i`, `delta`).
-- **`r4_table4.py`**, **`r4_numbers.py`**, **`r4_audit.py`** — build Table 4 and audit it against the stored `cert` flags.
-- **`run_r4.m`**, **`run_sample.m`**, **`run_exports.m`**, **`run_inst.m`** — drivers; every path is resolved from the location of the script itself, so they run from any checkout.
-- **`r4_table4.csv`** — the resulting table, as shipped.
-
-## Reproducing the numbers
-
-All reported numbers come from the stored outputs in the data package. After unzipping it:
-
-```bash
-python Code_Data/aggregate_all.py              # rebuilds r2_tables.json from the stored runs
-python Code/r3_postprocessing/r4_table4.py     # Table 4, from the certified stationarity table
-python Code_Data/recompute_sr.py               # the six success-rate columns of Table 4
-python Code_Data/cmh_test.py                   # the CMH test of Table 6
-python Code/generate_pareto_plots.py           # Figure 1
-python Code/generate_perf_profiles.py          # Figure 2
-python Code/r3_postprocessing/check_table4.py  # every cell of Table 4 against the LaTeX source
+```text
+python Code/r3_postprocessing/replay_adjudication.py Code_Data/crit_out_r4/adjudicated.csv Code_Data/crit_out_r4/adjudication_witnesses.json replay_report.json
+python Code_Data/recompute_sr.py
+python Code_Data/aggregate_all.py
+python Code/r3_postprocessing/r4_table4.py Code_Data/crit_out_r4
 ```
 
-`check_table4.py` and `verify_manuscript.py` also need the LaTeX source, which the data package does
-not include; run them in the source tree of the manuscript, where they compare the printed table and
-every prose claim with `r2_tables.json`. In the package they report that the sources are absent and
-exit successfully.
+Independent witness replay uses only Python's standard library. Aggregation and
+candidate generation require NumPy and SciPy; QP candidates use OSQP. Exact
+versions tested in this revision are recorded in `tested_environment.json`
+inside the archive. Its shipped final witnesses allow the tables to be checked
+without rerunning either the optimization algorithms or the candidate solvers.
 
-`Code_Data/README.md` inside the package gives the full step order, the inputs of each step and the
-cross-checks. `Code_Data/aggregate_all.py` reads the certified stationarity table `crit_out_r4/` by
-default; set `EBPGM_CRIT=crit_out` only to reproduce the pre-revision state.
+To regenerate certificate candidates, use the 11 archived formal MAT exports
+with `certify_adjudicated.py`; see its command-line help and the archive README.
+Regenerated valid bounds can differ between solver versions while deciding the
+same criteria. A new MATLAB export can have a different file hash because MAT
+headers include a timestamp; coefficient checks are distinct from file hashes.
 
-## Instructions
+`verify_manuscript.py --tex <source.tex> --data <Code_Data>` checks the tables and
+numerical statements against the final outputs. Missing source/data are errors.
+`check_table4.py <source.tex> <common_sr.json>` checks all 72 printed cells.
+The manuscript sources are distributed with the journal revision, separately
+from the numerical archive.
 
-1. Add `src/` to the MATLAB path (or run from inside it).
-2. For a quick demonstration, open `main.m`, select the problem and the algorithm, and run.
-3. For the full experiments, run `run_all_experiments` and then post-process with the Python scripts listed above; `run_problem('AP1', 10)` is a small smoke test.
+## Attribution and licence
 
-All experiments follow the fixed protocol of the manuscript: seed `123`, 42 test problems, 12 algorithms, 100 starting points per algorithm and problem. Generated outputs are written under `src/` and are ignored by git.
-
-## Requirements
-
-- MATLAB R2022b or later with Optimization Toolbox (`quadprog`, `linprog`)
-- Python 3.8+ with `numpy`, `scipy`, `matplotlib`
-
-## License
-
-GNU GPL-3.0. See `LICENSE`. Added and modified files carry SPDX license headers; see `CHANGES.md`.
+The implementation modifies the MPG code of Bello-Cruz, Melo, Prudente and Serra
+(https://github.com/lfprudente/MPG). See `CHANGES.md` for this revision and the
+historical changes. Code is distributed under GPL-3.0-or-later; see `LICENSE`.
+Historical sections of CHANGES describe superseded methods and are not the
+current reproduction instructions.

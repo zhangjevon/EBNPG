@@ -1,5 +1,3 @@
-# Added for the EBNPG manuscript (third revision).
-# SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """R2 master aggregation for the EBNPG manuscript.
 
@@ -13,15 +11,13 @@ Outputs:
 """
 import numpy as np, scipy.io as sio, os, json
 from scipy.stats import chi2, wilcoxon, binomtest
+from adjudication import CommonCriteria
 
 BASE = os.environ.get('EBPGM_DATA') or os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(BASE, 'results')
 RESW = os.path.join(BASE, 'results_w_rebuilt')   # R2 rerun of the adaptive study
-# crit_out    : first-pass stationarity table only (as used up to R2; it does not
-#               carry the cert flag, so the three Table 4 columns come out unmasked)
-# crit_out_r4 : final certified table; first-pass values carried over (nfirst = 1)
-#               and every point the first pass left unsolved re-solved and certified.
-#               This is the table the manuscript reports, and hence the default.
+# Final certified values plus a complete per-point primal-dual adjudication.
+# EBPGM_CRIT can be absolute or relative to the EBPGM_DATA data root.
 CRIT = os.path.join(BASE, os.environ.get('EBPGM_CRIT', 'crit_out_r4'))
 QP2 = os.path.join(BASE, 'qp_out2')
 NEF = os.path.join(BASE, 'ne_full')
@@ -107,58 +103,17 @@ for pi in range(42):
 MEDIT_MED = np.nanmedian(MEDIT, axis=1)
 MEDTIME_MED = np.nanmedian(MEDTIME, axis=1)
 
-# ================= common stationarity (crit_out) ==========================
-# A value counts only if it is certified: the model, evaluated at the point the
-# solver returned, must reproduce the value to max(1e-6, 1e-12|value|).  In the
-# first-pass table (crit_out) every stored value is certified by construction,
-# which cert_sample.m verifies on a systematic sample; in the R3 re-solve
-# (crit_out_r4) the certification flag is stored per point.
-CR = {}; DN = {}; INFO = {}
-for p in probs:
-    o = sio.loadmat(os.path.join(CRIT, p + '_crit.mat'))['out']
-    c = np.asarray(gv(o, 'crit')); d = np.asarray(gv(o, 'dnorm'))
-    try:                                  # present only in the R3 re-solve
-        ok = np.asarray(gv(o, 'cert')).astype(float) > 0
-        c = np.where(ok, c, np.nan); d = np.where(ok, d, np.nan)
-    except (KeyError, ValueError):
-        pass
-    CR[p] = c; DN[p] = d
-    INFO[p] = np.asarray(gv(o, 'info'))
-
-# ---- verdict-level adjudication -------------------------------------------
-# Of the 128 valued-but-uncertified points, 31 satisfy both criteria once the
-# verdict is taken on the certified minimiser of the subproblem rather than on
-# the returned iterate (see certify_adjudicated.py); these are counted as
-# passes here, exactly as in r4_table4.py, so that the two never disagree.  The
-# remaining 97, and the six unsolved points, count as failures.
-ADJ_TH = {}; ADJ_DN = {}
-for p in probs:
-    ADJ_TH[p] = np.zeros((12, 100), dtype=bool)
-    ADJ_DN[p] = np.zeros((12, 100), dtype=bool)
-_adj = os.path.join(CRIT, 'adjudicated.csv')
-if os.path.exists(_adj):
-    import csv as _csv
-    _ip = {n: i for i, n in enumerate(probs)}
-    _ia = {n: i for i, n in enumerate(algs)}
-    with open(_adj) as _f:
-        for _r in _csv.DictReader(_f):
-            _p = _r['prob']; _a = _ia[_r['alg']]; _k = int(_r['run']) - 1
-            ADJ_TH[_p][_a, _k] = _r['pass_theta'] == '1'
-            ADJ_DN[_p][_a, _k] = _r['pass_dnorm'] == '1'
-else:
-    print('note: adjudicated.csv absent, uncertified points counted as failures')
+# ================= common stationarity ====================================
+# All scripts use the same complete evidence and recompute interval decisions
+# at the requested tolerance.  Unresolved evidence is an error, never a failure.
+COMMON = CommonCriteria(CRIT, probs, algs)
+CR = {p: COMMON.criticality[pi] for pi, p in enumerate(probs)}
+DN = {p: COMMON.displacement[pi] for pi, p in enumerate(probs)}
+INFO = {p: COMMON.info[pi] for pi, p in enumerate(probs)}
+print('common stationarity:', COMMON.diagnostics())
 
 def crit_rates(field, tol, mode='A'):
-    pp = np.full((42, 12), np.nan)
-    for pi, p in enumerate(probs):
-        v = CR[p] if field == 'crit' else DN[p]
-        adj = ADJ_TH[p] if field == 'crit' else ADJ_DN[p]
-        for a in range(12):
-            m = (np.isfinite(v[a]) & (v[a] <= tol)) | adj[a]
-            if mode == 'B':
-                m = m & (INFO[p][a] == 0)
-            pp[pi, a] = 100.0 * m.sum() / v[a].size
-    return pp
+    return COMMON.rates(field, tol, mode)
 
 PP_TH = crit_rates('crit', 1e-4, 'A')          # -Theta_1 <= 1e-4
 PP_DN = crit_rates('dnorm', 1e-4, 'A')         # ||d_1|| <= 1e-4
@@ -174,6 +129,14 @@ for p in probs:
         v = CR[p][a][INFO[p][a] == 0]; v = v[np.isfinite(v)]
         succ_vals.extend(v.tolist())
 succ_vals = np.array(succ_vals)
+THETA_COVERAGE = {
+    'population': 'runs with algorithm success flag info == 0',
+    'summary_basis': 'retained scalar criticality evaluations only; adjudicated '
+                     'intervals are not substituted by point estimates',
+    'originally_successful_runs': int((COMMON.info == 0).sum()),
+    'included_retained_scalar_values': int(succ_vals.size),
+    'excluded_adjudicated_intervals': int(((COMMON.info == 0) & ~COMMON.certified).sum()),
+}
 
 # ================= QP counts (Table 7) ======================================
 plus_one = {'MPG-Explicit': 1, 'MPG-Armijo': 1}
@@ -530,6 +493,7 @@ out = dict(
     avg_dn=AVG_DN.tolist(), rob_dn=ROB_DN.tolist(),
     avg_th_b=AVG_TH_B.tolist(), avg_dn_b=AVG_DN_B.tolist(),
     theta_med=float(np.median(succ_vals)), theta_q99=float(np.quantile(succ_vals, .99)),
+    theta_summary_coverage=THETA_COVERAGE,
     perit={a: perit[a] for a in algs},
     oracle={str(r): dict(wins=ORACLE[r][0].tolist(), medrel=ORACLE[r][1].tolist()) for r in ORACLE},
     cmh=[dict(alg=r[0], mean_d=r[1], chi2=r[2], p=r[3], p_w=r[4], b=r[5], w=r[6], t=r[7], p_h=holm[i])
@@ -548,11 +512,13 @@ out['provenance'] = {
     'inputs': ['results/<problem>_results.mat and <problem>_summary.csv',
                'crit_out_r4/<problem>_crit.mat',
                'crit_out_r4/adjudicated.csv (verdict at the uncertified points)',
+               'crit_out_r4/adjudication_witnesses.json',
                'qp_out2/<problem>_qp.mat',
                'results_w_rebuilt/<problem>_W_results.mat',
                'ne_full/<problem>_N2.mat'],
-    'mask': 'a point with cert == 0 has no value and cannot count as a success, '
-            'except at the points adjudicated in adjudicated.csv',
+    'mask': 'certified values plus interval decisions for every uncertified '
+            'point; missing or undecided evidence raises an error',
+    'adjudication': COMMON.diagnostics(),
     'criteria': 'common criteria use beta = 1 and the Euclidean kernel',
     'success_flag': 'info_vals == 0',
     'reported_in': 'Tables 3, 5, 6, 7, 8, 9, 10 and the running text of the manuscript (R3)',
@@ -568,7 +534,10 @@ print('\n=== Table 4 ===')
 for k in np.argsort(-AVG_TH):
     print('  %-13s flag=%6.2f th=%6.2f dn=%6.2f | rob %5.1f %5.1f %5.1f | B: th=%6.2f dn=%6.2f'
           % (algs[k], AVG[k], AVG_TH[k], AVG_DN[k], ROB[k], ROB_TH[k], ROB_DN[k], AVG_TH_B[k], AVG_DN_B[k]))
-print('\n-Theta among originally successful: median=%.2e q99=%.2e' % (np.median(succ_vals), np.quantile(succ_vals, .99)))
+print('\n-Theta among originally successful runs with retained scalar evaluations: '
+      'n=%d of %d, median=%.2e q99=%.2e'
+      % (succ_vals.size, THETA_COVERAGE['originally_successful_runs'],
+         np.median(succ_vals), np.quantile(succ_vals, .99)))
 print('\n=== Table 2 ===')
 for r in TAB2:
     print('  %-24s %s' % (r[0], ' | '.join(r[1:])))

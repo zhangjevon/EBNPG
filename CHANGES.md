@@ -5,6 +5,38 @@ This release is a modified version of <https://github.com/lfprudente/MPG>
 repository. Files marked *modified* differ from the corresponding MPG file;
 files marked *added* are new in this release.
 
+## Revision 3.4 — tag `v3.4-jogo-r3`
+
+This revision completes the final common-displacement comparison at all
+50,400 returned points. All 134 previously uncertified scalar cases now have
+definite interval decisions: 31 pass both common criteria and 103 fail both,
+with zero undecided points. Exact rational feasible witnesses, outward
+decimal endpoints and an independent standard-library replay are archived.
+The exact-origin check includes activity in the original maximum, and the
+NIC2/EBNPG-N7/run39 displacement failure has a valid trial/Lipschitz bound.
+Candidate solver status and floating residuals do not serve as certificates.
+
+Table 4 changes EBNPG-N1 displacement SR from 93.3% to 93.4% (3921/4200) and
+EBNPG-N3 from 93.4% to 93.5% (3925/4200). The auxiliary N3 joint count becomes
+3915/4200. Other reported statistics and the stored figures are unchanged.
+
+Added: shared `Code_Data/adjudication.py`, independent
+`replay_adjudication.py`, source-coefficient checker, exact witness JSON and
+the 11 formal MAT exports. Updated the certificate generator and all three
+aggregation entry points to require complete unique-key coverage and to
+re-evaluate interval decisions at each tolerance; unresolved evidence raises
+an error. Added coverage metadata for the criticality quantiles. Legacy
+returned-point helpers are explicitly separated from the final output files.
+
+The package now includes `LICENSE`, this change history, environment records,
+release metadata and a complete file checksum list. The build creates a new
+output directory and ZIP without overwriting prior release artifacts.
+The new commit and any version DOI are supplied as build parameters; no new
+public DOI or publication is asserted merely by preparing this package.
+
+The following sections document historical releases. Their adjudication
+counts and certificate descriptions are superseded by Revision 3.4.
+
 ## Revision 3.3 --- tag `v3.3-jogo-r3`
 
 Two numbers printed in Table 4 change, each by one unit in the last printed digit, and the certificate

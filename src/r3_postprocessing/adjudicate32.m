@@ -1,6 +1,6 @@
-% Added for the EBNPG manuscript (third revision).
-% SPDX-License-Identifier: GPL-3.0-or-later
 function adjudicate32(out_csv)
+% LEGACY diagnostic only; enters no final table. Use certify_adjudicated and
+% the exact-rational Python certificate/replay for the final adjudication.
 % ADJUDICATE32  Decide the verdict of the returned points at which the R4 pass
 % could not certify the value of the common proximal subproblem.
 %
@@ -30,6 +30,12 @@ function adjudicate32(out_csv)
 
 if nargin < 1 || isempty(out_csv)
     out_csv = fullfile(fileparts(mfilename('fullpath')),'adj32.csv');
+end
+[~, legacy_name, legacy_extension] = fileparts(out_csv);
+if any(strcmpi([legacy_name legacy_extension], ...
+        {'adjudicated.csv','adjudication_witnesses.json'}))
+    error('adjudicate32:legacyOutput', ...
+        'Legacy diagnostics cannot overwrite the final adjudication files.');
 end
 
 % ---- locate the package root (works in the repository and in the release) --

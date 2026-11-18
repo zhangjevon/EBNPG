@@ -1,31 +1,12 @@
-# Added for the EBNPG manuscript (third revision).
-# SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
-"""Verdict-level adjudication of the points the R4 pass could not certify.
+"""LEGACY diagnostic: reconstruct superseded readings at returned directions.
 
-The R4 pass certifies a value only when the value the solver returns is
-reproduced by the model at the point the solver returns, to
-max(1e-6, 1e-12|value|), and is <= 0.  At 128 points no stage of the ladder
-achieved this; the reported value there is positive by about 1e-9, which is
-impossible for -Theta_1 (a quantity bounded above by zero), so that value
-cannot be used as it stands.
+These readings do not certify the minimizer of the common subproblem and enter
+no final table.  Output is deliberately named legacy_adjudicated_returned.csv;
+this historical helper cannot overwrite the final adjudicated.csv.  The final
+pipeline is certify_adjudicated.py plus replay_adjudication.py.
 
-The criterion, however, is a statement about the point, not about the solver's
-value:  -Theta_1(x) <= 1e-4  and  ||d_1(x)|| <= 1e-4.  Both are decided here on
-the value the model attains at the returned point -- retry_log.csv records it
-in the column theta_def -- together with the displacement of the returned
-point.  Of the 128 points, 96 have |theta_def| >= 1e3 and fail either way; at
-the remaining 32 the model value is at most 2.7e-7 in absolute value and the
-displacement at most 2.6e-8, so the two criteria are decided 4 to 5 orders of
-magnitude inside their tolerance.
-
-This file writes crit_out_r4/adjudicated.csv, which r4_table4.py and
-aggregate_all.py read to count these points.  It is written next to the
-crit_out_r4 table it refers to, so that a change of table cannot be silently
-combined with a stale adjudication: the run labels and the table version are
-recorded in the comment header.
-
-Usage:  python make_adjudicated.py [crit_out_r4]        (default: ../Code_Data/crit_out_r4)
+Usage: python make_adjudicated.py [crit_out_r4]
 """
 import csv, os, sys
 import numpy as np
@@ -69,7 +50,7 @@ with open(os.path.join(CRIT, 'retry_log.csv')) as f:
     for r in csv.DictReader(f):
         td[(r['prob'], r['alg'], int(r['run']))] = float(r['theta_def'])
 
-out = os.path.join(CRIT, 'adjudicated.csv')
+out = os.path.join(CRIT, 'legacy_adjudicated_returned.csv')
 nrow = npass_th = npass_dn = 0
 with open(out, 'w', newline='') as f:
     w = csv.writer(f)

@@ -1,34 +1,46 @@
-# Added for the EBNPG manuscript (third revision).
-# SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
-"""Data-driven verification of the JOGO-D-26-00589 R2 manuscript.
+"""Data-driven verification of the manuscript tables.
 
 Parses every numerical table of the tex file, strips the blue revision markup and
 compares each cell with the value recomputed by aggregate_all.py (r2_tables.json).
 Then asserts a list of prose claims and performs structural checks.
 
-Run from Code_Data:  python verify_manuscript.py
+Usage: python verify_manuscript.py --tex /path/to/manuscript.tex --data /path/to/Code_Data
+Missing source or result files are errors. All existing numerical-table assertions
+are retained. Prose checks combine stable wording assertions with parsed numeric
+claims checked against the final summaries and per-point certificate record.
 """
-import io, os, re, sys, json
+import argparse
+import csv
+import json
+import math
+from pathlib import Path
+import re
+import statistics
+import sys
+from decimal import Decimal, ROUND_CEILING
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-TEX = os.path.join(HERE, '..', 'EBNPG_2',
-                   '0.1StrogNonMonProxGradMethdPZOY02October2026R1.tex')
-D = json.load(open(os.path.join(HERE, 'r2_tables.json'), encoding='utf-8'))
+HERE = Path(__file__).resolve().parent
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--tex', type=Path,
+                    default=HERE.parent / 'EBNPG_2' /
+                    '0.1StrogNonMonProxGradMethdPZOY02October2026R1.tex',
+                    help='explicit manuscript LaTeX source')
+parser.add_argument('--data', type=Path, default=HERE,
+                    help='Code_Data folder holding r2_tables.json and common_sr.json')
+args = parser.parse_args()
+TEX = args.tex.expanduser().resolve()
+DATA = args.data.expanduser().resolve()
+for required in [TEX, DATA / 'r2_tables.json', DATA / 'common_sr.json']:
+    if not required.is_file():
+        parser.error('required input does not exist: %s' % required)
+with (DATA / 'r2_tables.json').open(encoding='utf-8') as stream:
+    D = json.load(stream)
+with (DATA / 'common_sr.json').open(encoding='utf-8') as stream:
+    COMMON_SUMMARY = json.load(stream)
 ALGS = D['algs']
 IX = {a: i for i, a in enumerate(ALGS)}
-
-# The manuscript source is not part of the data package (the package carries the
-# numbers, not the paper).  When it is absent this checker has nothing to compare
-# against, and it says so instead of failing: the table checks then reduce to the
-# aggregation already done by aggregate_all.py, which is run above it.
-if not os.path.exists(TEX):
-    print('manuscript source not present at %s' % os.path.normpath(TEX))
-    print('this data package does not include the LaTeX sources; nothing to verify.')
-    print('passed checks : 0\nfailed checks : 0')
-    sys.exit(0)
-
-txt = io.open(TEX, encoding='utf-8').read()
+txt = TEX.read_text(encoding='utf-8-sig')
 
 
 def strip_rev(s):
@@ -257,8 +269,8 @@ CLAIMS = [
     'EBNPG-N2 achieves the highest average success rate at \\begin{revision}93.6\\end{revision}\\%, followed by EBNPG-N6 (\\begin{revision}93.4\\end{revision}\\%), EBNPG-N3 (\\begin{revision}93.2\\end{revision}\\%), EBNPG-N1 (\\begin{revision}93.1\\end{revision}\\%) and CNPG-Avg (\\begin{revision}92.8\\end{revision}\\%)',
     '\\begin{revision}EBNPG-N6 alone achieves 85.7\\%, meaning that it achieves a success rate of at least \\(90\\%\\) on 36 out of 42 problems, followed by EBNPG-N2, EBNPG-N1, CNPG-Avg, and EBNPG-N5 at 83.3\\%\\end{revision}',
     'and \\begin{revision}7.1\\end{revision} percentage points between the weakest (\\begin{revision}71.4\\% for EBNPG-N7 and EBNPG-N0\\end{revision}',
-    '(95.7\\% under the criticality measure and 93.8\\% under the displacement criterion)',
-    'MPG-Explicit drops from $89.1\\%$ to $85.6\\%$',
+    'EBNPG-N2 attains the highest average success rate under both common criteria',
+    'For MPG-Explicit, that joint average is $85.6\\%$, compared with its flag-based $89.1\\%$',
     # 6.6
     'N2 achieves the highest overall average (\\begin{revision}93.6\\end{revision}\\%), followed by N6 (\\begin{revision}93.4\\end{revision}\\%) and N3 (\\begin{revision}93.2\\end{revision}\\%), with N1 at \\begin{revision}93.1\\end{revision}\\%',
     'On quadratic problems, CNPG-Max and MPG-Implicit achieve 97\\%, with \\begin{revision}EBNPG-N3 and N5 (both 96\\%)\\end{revision} close behind',
@@ -272,13 +284,13 @@ CLAIMS = [
     # 6.9--6.10
     'The EBNPG variants show relatively consistent iteration counts',
     'the clearest reduction in dispersion is relative to MPG-Implicit',
-    'EBNPG therefore uses fewer nonsmooth evaluations only when $T>2$',
-    'increasing $w_h/w_g$ does not reverse the weighted-cost ordering',
+    'For MPG-Explicit this statistic ranges from $1.01$ to $1.51$ over the $42$ problems',
+    'Table~\\ref{tab:oracle-cost} reports the resulting weighted-cost comparisons at $w_h/w_g=1,5,20$',
     'For general-purpose use, EBNPG-N2 is a reasonable default',
     'The nonmonotone variants improve average success and robustness over N0 overall',
     'N0 remains faster than N5 and N7 and is competitive or better on several problem classes',
     'N2 offers a useful overall balance, N6 attains the highest robustness, and CNPG-Avg remains competitive',
-    'The EBNPG and CNPG families also show higher robustness than the MPG family',
+    'Overall robustness ranges from $71.4\\%$ to $85.7\\%$ for EBNPG, from $81.0\\%$ to $83.3\\%$ for CNPG, and from $64.3\\%$ to $76.2\\%$ for MPG',
     # 6.2 (P1/P2 disclosure)
     'Interrupted sessions shifted this assignment on four problems',
     'on AP4, BK1, and PNR, algorithm 2 reuses block 1 and each later algorithm moves one block earlier; on DGO2, algorithms 4--12 use blocks 1--9',
@@ -326,6 +338,328 @@ CLAIMS = [
 for c in CLAIMS:
     n = TXT_N.count(strip_rev(c))
     check(n == 1, 'claim occurs %d times: %s' % (n, c[:70]))
+
+# ---------------------------------------- data-driven prose and coverage checks
+# Keep wording assertions above for unchanged passages. For the rewritten
+# passages, parse the relevant fields inside the named section instead of
+# asserting an entire paragraph with a historical sentence structure.
+def section(label, end_marker=None):
+    marker = r'\label{' + label + '}'
+    start = txt.index(marker) + len(marker)
+    if end_marker is None:
+        following = re.search(r'\\(?:subsection|section)\b', txt[start:])
+        end = start + following.start() if following else len(txt)
+    else:
+        end = txt.index(end_marker, start)
+    return strip_rev(txt[start:end])
+
+
+def readable(source):
+    source = strip_rev(source)
+    source = re.sub(r'\\begin\{table\}.*?\\end\{table\}', ' ', source, flags=re.S)
+    source = source.replace(r'\%', '%').replace('$', '').replace('{,}', ',')
+    source = source.replace(r'\(', '').replace(r'\)', '')
+    return re.sub(r'\s+', ' ', source)
+
+
+def parse_numbers(source, expression, expected, description, decimals=None):
+    found = re.search(expression, source)
+    check(found is not None, '%s: numeric claim is missing' % description)
+    if found is None:
+        return
+    values = [float(value.replace(',', '')) for value in found.groups()]
+    check(len(values) == len(expected), '%s: wrong numeric field count' % description)
+    for value, target in zip(values, expected):
+        target = he(target, decimals) if decimals is not None else target
+        check(math.isclose(value, target, rel_tol=0.0, abs_tol=1e-9),
+              '%s: read %s, expected %s' % (description, value, target))
+
+
+def ranks(values):
+    return [1 + sum(other < value for other in values) +
+            (sum(other == value for other in values) - 1) / 2
+            for value in values]
+
+
+classes = D['extra']['clscount']
+problem_rows = {}
+for line in txt.splitlines():
+    clean = strip_rev(line).strip()
+    parts = [part.strip() for part in clean.split('&')]
+    if len(parts) == 7 and parts[0] in D['CLASS']:
+        problem_rows[parts[0]] = parts[1]
+check(set(problem_rows) == set(D['CLASS']), 'Table 1 problem coverage differs from CLASS')
+for problem, expected_class in D['CLASS'].items():
+    check(problem_rows.get(problem) == expected_class,
+          'Table 1 %s classification: %s vs %s' %
+          (problem, problem_rows.get(problem), expected_class))
+check(D['CLASS'].get('DTLZ2') == 'Nonconvex', 'DTLZ2 must belong to the nonconvex group')
+for label in ['tab:problem-class', 'tab:nonmonotone-comparison']:
+    for row in table_rows(label):
+        match = re.fullmatch(r'(.+?)\s*\((\d+)\)', row[0])
+        check(match is not None, '%s: class count missing in %s' % (label, row[0]))
+        if match:
+            check(int(match.group(2)) == classes.get(match.group(1).strip()),
+                  '%s: wrong count for %s' % (label, row[0]))
+
+common_text = section('subsec:efficiency')
+common_text = common_text[common_text.index(r'\paragraph*{Sensitivity'):]
+common_plain = readable(common_text)
+parse_numbers(common_plain,
+              r'first pass left ([\d,]+) points.*?produced values at ([\d,]+) of them, including '
+              r'([\d,]+) that satisfy the model-value consistency test',
+              [607, 601, 473], 'Section 6.5 initial recovery and consistency coverage')
+check('with retained scalar common-subproblem evaluations' in common_plain,
+      'scalar quantile scope must be explicit')
+check('supporting-vector identity establishes the minimiser' in common_plain,
+      'the analytical origin certificate must be described')
+check(r'objective $i$ attains the maximum in $\Phi_x(-x)$' in common_text,
+      'the origin certificate must require objective activity at d=-x')
+check(r'$\|z_i\|_\infty\le1$' in common_text,
+      'the origin certificate must require supporting-vector feasibility')
+
+counts_match = re.search(r'Of them, ([\d,]+) satisfy both.*?remaining ([\d,]+) fail both',
+                         common_plain)
+check(counts_match is not None, 'Section 6.5 must report the final pass/fail partition')
+if counts_match:
+    check(tuple(map(lambda value: int(value.replace(',', '')), counts_match.groups())) == (31, 103),
+          'Section 6.5: final additional-check partition must be 31/103')
+
+n2 = IX['EBNPG-N2']
+parse_numbers(common_plain,
+              r'EBNPG-N2 attains the highest average success rate under both common criteria, '
+              r'([+-]?\d+(?:\.\d+)?)% for criticality and ([+-]?\d+(?:\.\d+)?)% for displacement',
+              [D['avg_th'][n2], D['avg_dn'][n2]], 'Section 6.5 N2 averages', 1)
+check(D['avg_th'][n2] == max(D['avg_th']), 'N2 is not the highest common-criticality average')
+check(D['avg_dn'][n2] == max(D['avg_dn']), 'N2 is not the highest common-displacement average')
+parse_numbers(common_plain,
+              r'For MPG-Explicit, that joint average is ([+-]?\d+(?:\.\d+)?)%, compared with its flag-based ([+-]?\d+(?:\.\d+)?)%',
+              [D['avg_th_b'][IX['MPG-Explicit']], D['avg'][IX['MPG-Explicit']]],
+              'Section 6.5 joint flag/criticality comparison', 1)
+
+corr_flag_dn = statistics.correlation(ranks(D['avg']), ranks(D['avg_dn']))
+corr_th_dn = statistics.correlation(ranks(D['avg_th']), ranks(D['avg_dn']))
+parse_numbers(common_plain, r'their Spearman rank correlation is ([+-]?\d+(?:\.\d+)?)',
+              [corr_flag_dn], 'Section 6.5 flag/displacement correlation', 3)
+parse_numbers(common_plain, r'rank correlation between the common columns is ([+-]?\d+(?:\.\d+)?)',
+              [corr_th_dn], 'Section 6.5 correlation of common criteria', 2)
+parse_numbers(common_plain,
+              r'CNPG-Max and EBNPG-N5.*?displacement averages are ([+-]?\d+(?:\.\d+)?)% and ([+-]?\d+(?:\.\d+)?)%',
+              [D['avg_dn'][IX['CNPG-Max']], D['avg_dn'][IX['EBNPG-N5']]],
+              'Section 6.5 displayed unresolved mean tie', 3)
+check(D['avg'][IX['CNPG-Max']] == D['avg'][IX['EBNPG-N5']],
+      'CNPG-Max and N5 must have equal flag-based averages for the tie claim')
+parse_numbers(common_plain,
+              r'In the displacement robustness column, CNPG-Avg reaches ([+-]?\d+(?:\.\d+)?)% and joins EBNPG-N6',
+              [D['rob_dn'][IX['CNPG-Avg']]], 'Section 6.5 CNPG-Avg robustness', 1)
+check(D['rob_dn'][IX['CNPG-Avg']] == D['rob_dn'][IX['EBNPG-N6']] == max(D['rob_dn']),
+      'CNPG-Avg and N6 must share the highest common-displacement robustness')
+max_change = max(abs(a - b) for a, b in zip(D['avg'], D['avg_dn']))
+limit_match = re.search(r'differ from the flag-based averages by at most ([+-]?\d+(?:\.\d+)?) percentage point',
+                        common_plain)
+check(limit_match is not None, 'Section 6.5 flag/displacement difference bound is missing')
+if limit_match:
+    check(max_change <= float(limit_match.group(1)) + 1e-12,
+          'Section 6.5 flag/displacement difference exceeds printed bound')
+
+# Compare the tolerance sensitivity with the numerical summary rather than
+# retaining a hard-coded claim about a former revision's threshold behavior.
+summary_algs = COMMON_SUMMARY.get('algs', [])
+check(summary_algs == ALGS, 'common_sr.json algorithm order differs from r2_tables.json')
+try:
+    avg_4 = COMMON_SUMMARY['avg']['A:-Theta<=1e-4']
+    avg_6 = COMMON_SUMMARY['avg']['A:-Theta<=1e-6']
+    drops = [a - b for a, b in zip(avg_4, avg_6)]
+    other = [drops[i] for i, alg in enumerate(ALGS) if alg != 'MPG-Explicit']
+    parse_numbers(common_plain,
+                  r'lowers the average success rate by ([+-]?\d+(?:\.\d+)?)--([+-]?\d+(?:\.\d+)?) percentage points for eleven algorithms',
+                  [min(other), max(other)], 'Section 6.5 criticality sensitivity range', 1)
+    parse_numbers(common_plain, r'and by ([+-]?\d+(?:\.\d+)?) points for MPG-Explicit',
+                  [drops[IX['MPG-Explicit']]], 'Section 6.5 MPG-Explicit sensitivity', 1)
+except KeyError as exc:
+    check(False, 'common_sr.json does not provide required tolerance case %s' % exc)
+
+coverage = COMMON_SUMMARY.get('provenance', {}).get('distribution_coverage', {})
+check(coverage.get('summary_basis') == 'retained scalar evaluations only; no interval point estimates',
+      'common_sr.json must identify the quantile basis')
+check('originally successful runs with retained scalar common-subproblem evaluations' in common_plain,
+      'Section 6.5 must limit scalar quantiles to retained evaluations')
+if coverage:
+    parse_numbers(common_plain,
+                  r'These quantiles use ([\d,]+) of the ([\d,]+) originally successful runs',
+                  [coverage['successful_retained_scalar_values'], coverage['originally_successful_runs']],
+                  'Section 6.5 quantile coverage')
+
+# Additional-check records are checked for complete keys, interval verdicts,
+# and the manuscript's retained upper bounds. Feasibility is validated by the
+# shared adjudication loader in the aggregation workflow.
+certificate_file = DATA / 'crit_out_r4' / 'adjudicated.csv'
+check(certificate_file.is_file(), 'missing final per-point adjudication file')
+if certificate_file.is_file():
+    with certificate_file.open(encoding='utf-8-sig', newline='') as stream:
+        certificates = list(csv.DictReader(stream))
+    keys = [(row['prob'], row['alg'], int(row['run'])) for row in certificates]
+    check(len(keys) == len(set(keys)) == 134, 'adjudication must contain 134 unique point keys')
+    for row in certificates:
+        key = (row['prob'], row['alg'], row['run'])
+        for field, lo_name, hi_name in [('theta', 'neg_theta_lo', 'neg_theta_hi'),
+                                         ('dnorm', 'dnorm_lo', 'dnorm_hi')]:
+            lo = Decimal(row[lo_name]); hi = Decimal(row[hi_name])
+            check(lo <= hi, 'adjudication %s %s: reversed interval' % (key, field))
+            expected = '1' if hi <= Decimal('1e-4') else '0' if lo > Decimal('1e-4') else '-1'
+            check(row['pass_' + field] == expected and expected != '-1',
+                  'adjudication %s %s: undecided or inconsistent verdict' % (key, field))
+    passed = [row for row in certificates if row['pass_theta'] == row['pass_dnorm'] == '1']
+    failed = [row for row in certificates if row['pass_theta'] == row['pass_dnorm'] == '0']
+    check(len(passed) == 31 and len(failed) == 103, 'final additional-check partition differs from 31/103')
+    if passed:
+        check(max(Decimal(row['neg_theta_hi']) for row in passed) <= Decimal('3.6e-9'),
+              'passing criticality intervals exceed the stated upper bound')
+        check(max(Decimal(row['dnorm_hi']) for row in passed) <= Decimal('9.9e-5'),
+              'passing displacement intervals exceed the stated upper bound')
+    if failed:
+        check(min(Decimal(row['neg_theta_lo']) for row in failed) >= Decimal('1.0198e-4'),
+              'failed criticality intervals contradict the stated margin')
+        check(sum(Decimal(row['dnorm_lo']) >= Decimal('4.84') for row in failed) == 102,
+              'failed displacement count above 4.84 differs from 102')
+        check(min(Decimal(row['dnorm_lo']) for row in failed) >= Decimal('1.4e-2'),
+              'failed displacement interval is below the stated smallest margin')
+
+    # Parse the printed safety bounds and compare them with the per-point
+    # intervals, so editing a bound in prose cannot bypass the data checks.
+    bounds = re.search(
+        r'with the bounds .*?\\le([\d.]+)\\times10\^\{(-?\d+)\}'
+        r' and .*?\\le([\d.]+)\\times10\^\{(-?\d+)\}', common_plain)
+    check(bounds is not None, 'Section 6.5 passing-interval bounds are missing')
+    if bounds and passed:
+        printed = [Decimal(bounds.group(1)) * Decimal(10) ** int(bounds.group(2)),
+                   Decimal(bounds.group(3)) * Decimal(10) ** int(bounds.group(4))]
+        for actual, bound, name in [
+                (max(Decimal(row['neg_theta_hi']) for row in passed), printed[0], 'criticality'),
+                (max(Decimal(row['dnorm_hi']) for row in passed), printed[1], 'displacement')]:
+            quantum = Decimal(1).scaleb(actual.adjusted() - 1)
+            rounded_out = actual.quantize(quantum, rounding=ROUND_CEILING)
+            check(bound == rounded_out,
+                  'Section 6.5 %s bound %s must round outward from %s to %s' %
+                  (name, bound, actual, rounded_out))
+
+# Use the shared interval reader to bind cached table values to raw evaluations
+# and the complete certificate/witness set. This also tests the tolerance cases
+# and the original-success exception claim from the current input files.
+try:
+    from adjudication import CommonCriteria
+    import numpy as np
+    common = CommonCriteria(DATA / 'crit_out_r4', D['probs'], ALGS)
+    diag = common.diagnostics()
+    check(diag['adjudicated_points'] == 134 and
+          diag['passes_criticality'] == diag['passes_displacement'] == 31 and
+          diag['undecided_points'] == 0, 'shared reader does not confirm 134 / 31 / 103')
+    for field, mode, avg_name, rob_name in [
+            ('crit', 'A', 'avg_th', 'rob_th'),
+            ('dnorm', 'A', 'avg_dn', 'rob_dn'),
+            ('crit', 'B', 'avg_th_b', None),
+            ('dnorm', 'B', 'avg_dn_b', None)]:
+        rates = common.rates(field, '1e-4', mode)
+        for i, alg in enumerate(ALGS):
+            check(math.isclose(float(rates[:, i].mean()), D[avg_name][i], abs_tol=1e-9),
+                  '%s/%s average for %s disagrees with stored evaluations' % (field, mode, alg))
+            if rob_name is not None:
+                robustness = float((rates[:, i] >= 90).mean() * 100)
+                check(math.isclose(robustness, D[rob_name][i], abs_tol=1e-9),
+                      '%s robustness for %s disagrees with stored evaluations' % (field, alg))
+    theta_pass = common.pass_mask('crit', '1e-4')
+    own_success = common.info == 0
+    for i, alg in enumerate(ALGS):
+        fails = int((own_success[:, i] & ~theta_pass[:, i]).sum())
+        check(fails == (148 if alg == 'MPG-Explicit' else 0),
+              'originally-successful common-criticality exceptions changed for %s: %d' % (alg, fails))
+    values = common.criticality[own_success & np.isfinite(common.criticality)]
+    check(values.size == coverage.get('successful_retained_scalar_values'),
+          'quantile retained-scalar coverage disagrees with raw evaluations')
+    check(int(own_success.sum()) == coverage.get('originally_successful_runs'),
+          'original success coverage disagrees with raw evaluations')
+    check(math.isclose(float(np.median(values)), D['theta_med'], rel_tol=1e-12),
+          'median in r2_tables.json differs from retained scalar values')
+    check(math.isclose(float(np.quantile(values, .99)), D['theta_q99'], rel_tol=1e-12),
+          'q99 in r2_tables.json differs from retained scalar values')
+except (ImportError, OSError, ValueError, KeyError) as exc:
+    check(False, 'current raw evaluation/certificate audit failed: %s' % exc)
+
+# The trial-count sentence describes an implied statistic for MPG-Explicit,
+# pooled over successful runs of each problem. Recompute that exact statistic
+# from the per-run export, not from a broad claim about individual iterations.
+raw_export = DATA / 'results' / 'all_raw.csv'
+check(raw_export.is_file(), 'per-run export missing for the trial-count check')
+if raw_export.is_file():
+    totals = {}
+    with raw_export.open(encoding='utf-8-sig', newline='') as stream:
+        for row in csv.DictReader(stream):
+            if row['Algorithm'] != 'MPG-Explicit' or float(row['Info']) != 0 or float(row['Iter']) <= 0:
+                continue
+            values = totals.setdefault(row['Problem'], [0.0, 0.0])
+            values[0] += float(row['Nhev'])
+            values[1] += float(row['m']) * float(row['Iter'])
+    check(set(totals) == set(D['probs']), 'MPG-Explicit trial statistic must cover all 42 problems')
+    trials = [numerator / denominator for numerator, denominator in totals.values()]
+    parse_numbers(readable(section('subsec:discussion')),
+                  r'For MPG-Explicit this statistic ranges from ([\d.]+) to ([\d.]+) over the 42 problems',
+                  [min(trials), max(trials)], 'Section 6.10 implied mean trials', 2)
+
+class_text = readable(section('subsec:problem-class'))
+parse_numbers(class_text,
+              r'five classes contain ([\d,]+), ([\d,]+), ([\d,]+), ([\d,]+) and ([\d,]+) problems',
+              [classes[name] for name in ['Convex', 'Nonconvex', 'Multimodal', 'Quadratic',
+                                         'Nonuniform/polynomial']], 'Section 6.4 class counts')
+check('most pronounced on multimodal' not in class_text,
+      'unsupported largest multimodal gap claim remains')
+parse_numbers(class_text,
+              r'On multimodal problems, EBNPG-N0, N1, N2, N3 and N6 each attain a class-average '
+              r'success rate of ([+-]?\d+(?:\.\d+)?)% after rounding, compared with ([+-]?\d+(?:\.\d+)?)% for MPG-Implicit',
+              [mround(D['extra']['clsmean']['Multimodal']['EBNPG-N2']),
+               mround(D['extra']['clsmean']['Multimodal']['MPG-Implicit'])],
+              'Section 6.4 multimodal average comparison')
+for alg in ['EBNPG-N0', 'EBNPG-N1', 'EBNPG-N2', 'EBNPG-N3', 'EBNPG-N6']:
+    check(mround(D['extra']['clsmean']['Multimodal'][alg]) == 98,
+          '%s no longer rounds to 98 in the multimodal comparison' % alg)
+
+discussion = readable(section('subsec:discussion'))
+parse_numbers(discussion,
+              r'On quadratic problems, CNPG-Max and MPG-Implicit tie at ([+-]?\d+(?:\.\d+)?)% '
+              r'\(([+-]?\d+(?:\.\d+)?)% after rounding\)',
+              [D['extra']['clsmean']['Quadratic']['CNPG-Max'],
+               mround(D['extra']['clsmean']['Quadratic']['CNPG-Max'])],
+              'Section 6.10 quadratic tie')
+check(D['extra']['clsmean']['Quadratic']['CNPG-Max'] ==
+      D['extra']['clsmean']['Quadratic']['MPG-Implicit'], 'data do not support the quadratic tie')
+family_ranges = []
+for prefix in ['EBNPG', 'CNPG', 'MPG']:
+    vals = [D['rob'][i] for i, alg in enumerate(ALGS) if alg.startswith(prefix)]
+    family_ranges.extend([min(vals), max(vals)])
+parse_numbers(discussion,
+              r'Overall robustness ranges from ([+-]?\d+(?:\.\d+)?)% to ([+-]?\d+(?:\.\d+)?)% for EBNPG, '
+              r'from ([+-]?\d+(?:\.\d+)?)% to ([+-]?\d+(?:\.\d+)?)% for CNPG, and from ([+-]?\d+(?:\.\d+)?)% to ([+-]?\d+(?:\.\d+)?)% for MPG',
+              family_ranges, 'Section 6.10 overall robustness ranges', 1)
+check('Table~\\ref{tab:efficiency-robustness}' in section('subsec:discussion'),
+      'overall robustness must cite its numerical table')
+parse_numbers(discussion,
+              r'class-average success rates reported.*?are ([+-]?\d+(?:\.\d+)?)--([+-]?\d+(?:\.\d+)?)% for EBNPG, '
+              r'([+-]?\d+(?:\.\d+)?)% for CNPG, and ([+-]?\d+(?:\.\d+)?)--([+-]?\d+(?:\.\d+)?)% for MPG after rounding',
+              [95, 98, 97, 70, 97], 'Section 6.10 multimodal class means')
+check('especially on multimodal problems' not in discussion,
+      'class-average success rate is still described as class robustness')
+
+# These unchanged recommendations are now checked against the weighted-cost
+# data as well as being asserted in the prose above.
+mpg_explicit = IX['MPG-Explicit']
+for ratio in ['1', '5', '20']:
+    costs = D['oracle'][ratio]['wins']
+    check(costs[mpg_explicit] == max(costs),
+          'MPG-Explicit is no longer the method with most lowest-cost problems at ratio %s' % ratio)
+check(D['oracle']['20']['medrel'][mpg_explicit] <
+      D['oracle']['20']['medrel'][IX['EBNPG-N2']] <
+      D['oracle']['20']['medrel'][IX['CNPG-Avg']],
+      'weighted-cost ordering does not support the recommendation')
+
 
 # ------------------------------------------------- structural checks
 nb = txt.count('\\begin{revision}')
