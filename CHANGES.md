@@ -33,13 +33,13 @@ feasibility of both points is verified rather than assumed.
 Over the 134 points (the 128 the ladder could not certify plus the 6 at which the numeric solve returned
 no solution, `info_orig = -2`), the bracket decides the criticality criterion at all 134 and the
 displacement criterion at 130: 31 pass criticality with `-Theta_1 <= 2.05e-6`, 28 pass displacement with
-`||d_1|| <= 9.93e-5`, 102 of the 103 that fail criticality fail displacement too with `||d_1|| >= 4.85`,
+`||d_1|| <= 9.93e-5`, 102 of the 103 that fail criticality fail displacement too with `||d_1|| >= 4.84`,
 and 4 are undecided on displacement (MGH26/EBNPG-N1 run 45, MGH26/EBNPG-N3 run 40, ZLT1/EBNPG-N3 run 3,
 NIC2/EBNPG-N7 run 39) and are counted as failures, so 28 is a lower bound. The criticality margin is
 thin at one point only: at NIC2 with EBNPG-N7 run 39 the bracket gives `-Theta_1` in
 `[1.0198e-4, 2.352]`, two per cent above the tolerance, and at the other 102 of the 103 it is at least
-11.9. The six points that previously counted as failures by default are now decided with large margins
-(`-Theta_1 >= 7.4e5` at the five AP3 points, `11.85` at the sixth, BK1 with EBNPG-N3).
+11.84. The six points that previously counted as failures by default are now decided with large margins
+(`-Theta_1 >= 7.4e5` at the five AP3 points, `11.84` at the sixth, BK1 with EBNPG-N3).
 
 Changed (`Code_Data/crit_out_r4/`):
 
