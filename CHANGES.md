@@ -13,7 +13,7 @@ definite interval decisions: 31 pass both common criteria and 103 fail both,
 with zero undecided points. Exact rational feasible witnesses, outward
 decimal endpoints and an independent standard-library replay are archived.
 The exact-origin check includes activity in the original maximum, and the
-NIC2/EBNPG-N7/run39 displacement failure has a valid trial/Lipschitz bound.
+NIC2/EBNPG-N7/run39 failure under both criteria follows from tight feasible primal--dual bounds.
 Candidate solver status and floating residuals do not serve as certificates.
 
 Table 4 changes EBNPG-N1 displacement SR from 93.3% to 93.4% (3921/4200) and

@@ -1,5 +1,3 @@
-# Added for the EBNPG manuscript (third revision).
-# SPDX-License-Identifier: GPL-3.0-or-later
 # -*- coding: utf-8 -*-
 """Cell-by-cell check of Table 4 (tab:common-stationarity) against common_sr.json.
 
@@ -11,8 +9,8 @@ The LaTeX is parsed rather than retyped, so a stale manuscript cell cannot be
 excused by a stale constant in this script.  \\begin{revision} wrappers and
 thousands separators are stripped.  Exit code 1 on any mismatch.
 
-The data package has no LaTeX source, so inside it the script reports that and
-exits successfully, as verify_manuscript.py does.
+The data package has no LaTeX source. Supply its path explicitly;
+a missing manuscript is an error, not a successful zero-cell check.
 """
 import json, os, re, sys
 
@@ -42,10 +40,8 @@ TEX = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
 SRJ = sys.argv[2] if len(sys.argv) > 2 else os.path.join(
     ROOT, 'Code_Data', 'common_sr.json')
 
-if not os.path.exists(TEX):
-    print('manuscript source not present at %s' % TEX)
-    print('this data package does not include the LaTeX sources; nothing to verify.')
-    sys.exit(0)
+if not os.path.isfile(TEX):
+    raise FileNotFoundError('Required manuscript source is absent: %s' % TEX)
 
 txt = open(TEX, encoding='utf-8').read()
 i0 = txt.find(r'\label{tab:common-stationarity}')
